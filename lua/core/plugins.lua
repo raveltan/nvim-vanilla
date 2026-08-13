@@ -1,0 +1,748 @@
+-- Every plugin in this config. core/pack.lua does the loading, on top of the
+-- builtin vim.pack.
+--
+-- Anything not listed is either native (core/*.lua) or deliberately gone:
+-- cosmetics, terminal, undotree, obsidian, dap, dadbod, overseer.
+
+local pack = require("core.pack")
+local gh = "https://github.com/"
+
+-- ── helpers used by more than one spec ───────────────────────────────────────
+
+-- `opts` may be a function, for pickers whose arguments depend on the buffer at
+-- press time. core/pack.lua loads the plugin before invoking a key's rhs, so
+-- the require here always resolves.
+local function fzf(fn, opts)
+  return function()
+    require("fzf-lua")[fn](type(opts) == "function" and opts() or opts)
+  end
+end
+
+local function here() return { cwd = vim.fn.expand("%:p:h") } end
+
+local PROJECT_ROOTS = { "~/repo", "~/freelancer-dev" }
+local function projects()
+  local roots = {}
+  for _, r in ipairs(PROJECT_ROOTS) do
+    local p = vim.fn.expand(r)
+    if vim.uv.fs_stat(p) then roots[#roots + 1] = p end
+  end
+  if #roots == 0 then
+    vim.notify("No project roots exist (" .. table.concat(PROJECT_ROOTS, ", ") .. ")", vim.log.levels.WARN)
+    return
+  end
+  local cmd = { "fd", "--hidden", "--no-ignore", "--type", "d", "--max-depth", "4", "^\\.git$" }
+  vim.list_extend(cmd, roots)
+  vim.system(cmd, { text = true }, vim.schedule_wrap(function(res)
+    local dirs = {}
+    for _, line in ipairs(vim.split(res.stdout or "", "\n", { trimempty = true })) do
+      dirs[#dirs + 1] = vim.fn.fnamemodify(line:gsub("/%.git/?$", ""), ":~")
+    end
+    table.sort(dirs)
+    require("fzf-lua").fzf_exec(dirs, {
+      prompt = "Projects> ",
+      actions = {
+        ["default"] = function(sel)
+          if not sel[1] then return end
+          local dir = vim.fn.expand(sel[1])
+          vim.cmd.tcd(vim.fn.fnameescape(dir))
+          require("fzf-lua").files({ cwd = dir })
+        end,
+      },
+    })
+  end))
+end
+
+-- ── specs ────────────────────────────────────────────────────────────────────
+
+pack.setup({
+  -- Loaded during startup so the first paint is already themed.
+  {
+    src = gh .. "bluz71/vim-moonfly-colors",
+    name = "moonfly",
+    now = true,
+    config = function()
+      vim.g.moonflyTransparent = true
+      -- The default 1 draws VertSplit as a solid grey block that survives
+      -- transparency. 2 is the line style moonfly renders with bg=NONE.
+      vim.g.moonflyWinSeparator = 2
+      vim.cmd.colorscheme("moonfly")
+      -- Inlay hints read as annotations, not boxed text.
+      vim.api.nvim_set_hl(0, "LspInlayHint", { fg = "#5c6370", italic = true })
+      require("core.statusline").setup()
+      require("core.todo").setup()
+    end,
+  },
+
+  -- Data only. `data = true` packadd!s it without sourcing plugin/, so no Lua
+  -- of it ever runs and vim.lsp.enable() just reads its lsp/<server>.lua off
+  -- the rtp (core/lsp.lua). BufReadPre/BufNewFile land before FileType and the
+  -- FileType entry covers `:enew` plus `:setfiletype`, and this spec registers
+  -- ahead of core/lsp.lua, so the rtp is always ready first.
+  {
+    src = gh .. "neovim/nvim-lspconfig",
+    data = true,
+    event = { "BufReadPre", "BufNewFile", "FileType" },
+  },
+  -- Also data only, required from core/lsp.lua's before_init when a json or
+  -- yaml server actually starts.
+  {
+    src = gh .. "b0o/SchemaStore.nvim",
+    data = true,
+    ft = { "json", "jsonc", "yaml" },
+  },
+
+  -- No trigger of its own. oil and fzf-lua declare it as a dep, so setup() has
+  -- run before either asks MiniIcons for a glyph.
+  {
+    src = gh .. "echasnovski/mini.icons",
+    config = function()
+      require("mini.icons").setup()
+      -- Some plugins still ask for nvim-web-devicons by name.
+      package.preload["nvim-web-devicons"] = function()
+        require("mini.icons").mock_nvim_web_devicons()
+        return package.loaded["nvim-web-devicons"]
+      end
+    end,
+  },
+
+  -- Owns 'statuscolumn'. See the foldcolumn note in core/options.lua.
+  {
+    src = gh .. "mluders/comfy-line-numbers.nvim",
+    event = { "BufReadPre", "BufNewFile" },
+    config = function() require("comfy-line-numbers").setup({}) end,
+  },
+
+  -- ── search / navigation ────────────────────────────────────────────────────
+
+  -- The entire picker layer, on the fzf C binary plus rg and fd.
+  {
+    src = gh .. "ibhagwan/fzf-lua",
+    cmd = "FzfLua",
+    deps = { "mini.icons" },
+    config = function()
+      require("fzf-lua").setup({
+        "default",
+        winopts = {
+          height = 0.85,
+          width = 0.85,
+          border = "rounded",
+          preview = { default = "builtin", layout = "flex", scrollbar = false },
+        },
+        -- fd over `find` because it respects .gitignore and is threaded.
+        files = {
+          cmd = "fd --color=never --type f --hidden --follow --exclude .git",
+          formatter = "path.filename_first",
+        },
+        grep = {
+          rg_opts = "--column --line-number --no-heading --color=always "
+            .. "--smart-case --hidden --glob=!.git --max-columns=512",
+        },
+        previewers = {
+          -- Stop treesitter from parsing a minified bundle in the preview pane.
+          builtin = { syntax_limit_b = 100 * 1024 },
+        },
+        keymap = {
+          builtin = {
+            ["<C-d>"] = "preview-page-down",
+            ["<C-u>"] = "preview-page-up",
+            ["<C-/>"] = "toggle-help",
+          },
+          fzf = {
+            ["ctrl-q"] = "select-all+accept", -- a multi-selection accept lands in quickfix
+            ["ctrl-d"] = "preview-page-down",
+            ["ctrl-u"] = "preview-page-up",
+          },
+        },
+      })
+      -- Every vim.ui.select caller, core/case.lua included, gets a fuzzy menu
+      -- instead of the numbered prompt.
+      require("fzf-lua").register_ui_select()
+    end,
+    keys = {
+      { "<leader><leader>", fzf("files"), desc = "Find files" },
+      { "<leader>fo", fzf("files", here), desc = "Find files (current file dir)" },
+      { "<leader>fr", fzf("oldfiles"), desc = "Recent files" },
+      { "<leader>fp", projects, desc = "Projects" },
+      { "<leader>,", fzf("buffers"), desc = "Buffers" },
+      { "<leader>fg", fzf("git_files"), desc = "Git files" },
+      { "<leader>sg", fzf("live_grep_native"), desc = "Grep (workspace)" },
+      { "<leader>sw", fzf("grep_cword"), desc = "Grep word" },
+      { "<leader>sw", fzf("grep_visual"), mode = "x", desc = "Grep selection" },
+      { "<leader>s.", fzf("live_grep_native", here), desc = "Grep in current file dir" },
+      { "<leader>sb", fzf("blines"), desc = "Grep current buffer" },
+      { "<leader>xx", fzf("diagnostics_document"), desc = "Buffer diagnostics" },
+      { "<leader>sh", fzf("helptags"), desc = "Help pages" },
+      { "<leader>sk", fzf("keymaps"), desc = "Keymaps" },
+      { "<leader>sc", fzf("commands"), desc = "Commands" },
+      { "<leader>sd", fzf("diagnostics_workspace"), desc = "Diagnostics" },
+      { "<leader>sr", fzf("resume"), desc = "Resume last picker" },
+      { "<leader>sm", fzf("marks"), desc = "Marks" },
+      { "<leader>sj", fzf("jumps"), desc = "Jumplist" },
+      { '<leader>s"', fzf("registers"), desc = "Registers" },
+      { "<leader>s/", fzf("search_history"), desc = "Search history" },
+      { "<leader>s:", fzf("command_history"), desc = "Command history" },
+      { "<leader>ss", fzf("lsp_document_symbols"), desc = "Document symbols" },
+      { "<leader>sS", fzf("lsp_live_workspace_symbols"), desc = "Workspace symbols" },
+      { "gd", fzf("lsp_definitions"), desc = "Go to definition" },
+      { "gr", fzf("lsp_references"), desc = "References" },
+      { "gI", fzf("lsp_implementations"), desc = "Implementations" },
+      { "gy", fzf("lsp_typedefs"), desc = "Type definitions" },
+      { "<leader>gs", fzf("git_status"), desc = "Git status" },
+      { "<leader>gC", fzf("git_commits"), desc = "Git log (repo)" },
+    },
+  },
+
+  {
+    src = gh .. "barrettruth/canola.nvim",
+    deps = { "mini.icons" },
+    config = function()
+      require("oil").setup({
+        view_options = { show_hidden = true },
+        keymaps = {
+          ["q"] = "actions.close",
+          ["<C-h>"] = false, -- don't override window nav
+          ["<C-l>"] = false,
+        },
+      })
+    end,
+    keys = {
+      { "<leader>e", "<cmd>Oil<cr>", desc = "Explorer (Oil)" },
+      { "-", "<cmd>Oil<cr>", desc = "Open parent directory" },
+    },
+  },
+
+  {
+    src = gh .. "christoomey/vim-tmux-navigator",
+    event = "User VeryLazy",
+    keys = {
+      { "<C-h>", "<cmd>TmuxNavigateLeft<cr>", desc = "Window left" },
+      { "<C-j>", "<cmd>TmuxNavigateDown<cr>", desc = "Window down" },
+      { "<C-k>", "<cmd>TmuxNavigateUp<cr>", desc = "Window up" },
+      { "<C-l>", "<cmd>TmuxNavigateRight<cr>", desc = "Window right" },
+    },
+  },
+
+  -- ── treesitter ─────────────────────────────────────────────────────────────
+
+  {
+    src = gh .. "nvim-treesitter/nvim-treesitter",
+    version = "main",
+    -- BufReadPre fires before FileType, so the FileType autocmd below is
+    -- registered in time to highlight that same buffer.
+    event = { "BufReadPre", "BufNewFile" },
+    config = function()
+      local LANGS = {
+        "angular", "bash", "blade", "css", "diff", "gitcommit", "git_rebase",
+        "html", "javascript", "json", "lua", "luadoc", "markdown",
+        "markdown_inline", "php", "php_only", "python", "query", "regex", "rust",
+        "scss", "swift", "toml", "tsx", "typescript", "vim", "vimdoc", "yaml",
+      }
+      -- nvim-treesitter `main` has no ensure_installed and install() is
+      -- unconditional, so handing it the full list re-downloads every parser on
+      -- every session.
+      local installed = {}
+      for _, l in ipairs(require("nvim-treesitter.config").get_installed("parsers")) do
+        installed[l] = true
+      end
+      local missing = vim.tbl_filter(function(l) return not installed[l] end, LANGS)
+      if #missing > 0 then require("nvim-treesitter").install(missing) end
+
+      vim.api.nvim_create_user_command("TSSync", function()
+        -- Blocking, for a fresh machine or a parser ABI bump. 10 min ceiling.
+        require("nvim-treesitter").install(LANGS, { force = true }):wait(600000)
+        vim.notify("Treesitter parsers installed")
+      end, { desc = "Install/update every parser (blocking)" })
+
+      -- Above either ceiling the buffer is a bundle or a dump, where parsing
+      -- costs more than the highlighting is worth.
+      local TS_MAX_BYTES = 500 * 1024
+      local TS_MAX_LINES = 10000
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("treesitter_highlight", { clear = true }),
+        callback = function(args)
+          if vim.b[args.buf].bigfile then return end
+          local name = vim.api.nvim_buf_get_name(args.buf)
+          local ok_stat, stat = pcall(vim.uv.fs_stat, name)
+          if ok_stat and stat and stat.size and stat.size > TS_MAX_BYTES then return end
+          if vim.api.nvim_buf_line_count(args.buf) > TS_MAX_LINES then return end
+          pcall(vim.treesitter.start, args.buf)
+          if vim.treesitter.get_parser(args.buf, nil, { error = false }) then
+            vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+            -- foldlevelstart=99 in core/options.lua keeps these open on load, zc/za
+            -- fold on demand. Set only where a parser exists.
+            vim.api.nvim_set_option_value("foldmethod", "expr", { scope = "local" })
+            vim.api.nvim_set_option_value("foldexpr", "v:lua.vim.treesitter.foldexpr()", { scope = "local" })
+          end
+        end,
+      })
+    end,
+  },
+
+  -- Queries plus move/swap only. mini.ai owns af/if/ac/ic/aa/ia and consumes
+  -- these same queries through gen_spec.treesitter, so mapping the select side
+  -- here would shadow its counts, an/al variants and dot-repeat.
+  {
+    src = gh .. "nvim-treesitter/nvim-treesitter-textobjects",
+    version = "main",
+    event = { "BufReadPost", "BufNewFile" },
+    config = function()
+      require("nvim-treesitter-textobjects").setup({ select = { lookahead = true } })
+      local move = require("nvim-treesitter-textobjects.move")
+      local swap = require("nvim-treesitter-textobjects.swap")
+      local map = vim.keymap.set
+
+      map({ "n", "x", "o" }, "]f", function() move.goto_next_start("@function.outer", "textobjects") end, { desc = "Next function" })
+      map({ "n", "x", "o" }, "[f", function() move.goto_previous_start("@function.outer", "textobjects") end, { desc = "Prev function" })
+      map({ "n", "x", "o" }, "]a", function() move.goto_next_start("@parameter.outer", "textobjects") end, { desc = "Next argument" })
+      map({ "n", "x", "o" }, "[a", function() move.goto_previous_start("@parameter.outer", "textobjects") end, { desc = "Prev argument" })
+      map("n", "<leader>csa", function() swap.swap_next("@parameter.inner") end, { desc = "Swap with next arg" })
+      map("n", "<leader>csA", function() swap.swap_previous("@parameter.inner") end, { desc = "Swap with prev arg" })
+
+      -- Per-buffer node stack for incremental selection. <BS> reverses <CR> by
+      -- one level.
+      local stacks = {}
+
+      -- Treesitter ranges are end-exclusive, visual marks are (1,0)-indexed and
+      -- inclusive.
+      local function select_node(node)
+        local sr, sc, er, ec = node:range()
+        if ec == 0 then
+          if er > 0 then
+            er = er - 1
+            ec = #vim.api.nvim_buf_get_lines(0, er, er + 1, true)[1]
+          end
+          if ec == 0 then ec = 1 end
+        end
+        local last = vim.api.nvim_buf_line_count(0)
+        vim.api.nvim_buf_set_mark(0, "<", math.min(sr + 1, last), sc, {})
+        vim.api.nvim_buf_set_mark(0, ">", math.min(er + 1, last), math.max(ec - 1, 0), {})
+        vim.cmd("normal! gv")
+      end
+
+      map("n", "<CR>", function()
+        -- Pass <CR> through in the cmdwin (q:, q/) and special buffers where it
+        -- has a real default.
+        if vim.fn.win_gettype() == "command" or vim.bo.buftype ~= "" then
+          return vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
+        end
+        local node = vim.treesitter.get_node()
+        if node then
+          stacks[vim.api.nvim_get_current_buf()] = { node }
+          select_node(node)
+        end
+      end, { desc = "Start incremental select" })
+
+      map("x", "<CR>", function()
+        local stack = stacks[vim.api.nvim_get_current_buf()]
+        local current = stack and stack[#stack]
+        local parent = current and current:parent()
+        if parent then
+          stack[#stack + 1] = parent
+          select_node(parent)
+        end
+      end, { desc = "Expand selection" })
+
+      map("x", "<BS>", function()
+        local stack = stacks[vim.api.nvim_get_current_buf()]
+        if stack and #stack > 1 then
+          table.remove(stack)
+          select_node(stack[#stack])
+        end
+      end, { desc = "Shrink selection" })
+    end,
+  },
+
+  -- BufReadPre rather than InsertEnter. The plugin attaches from a FileType
+  -- autocmd registered at setup time, so a buffer whose FileType already fired
+  -- never gets it.
+  {
+    src = gh .. "windwp/nvim-ts-autotag",
+    event = { "BufReadPre", "BufNewFile" },
+    config = function()
+      -- blade is aliased upstream, typescript is ours. Angular inline
+      -- `template:` backticks are an injected angular tree and the plugin's
+      -- inline-template detection cannot cross the injection boundary, so
+      -- without the alias it falls back to JSX patterns that never match
+      -- angular's start_tag/element/end_tag nodes.
+      require("nvim-ts-autotag").setup({ aliases = { ["typescript"] = "html" } })
+    end,
+  },
+
+  -- ── editing ────────────────────────────────────────────────────────────────
+
+  {
+    src = gh .. "echasnovski/mini.surround",
+    event = "User VeryLazy",
+    config = function()
+      require("mini.surround").setup({
+        n_lines = 500,
+        mappings = {
+          add = "gsa", delete = "gsd", find = "gsf", find_left = "gsF",
+          highlight = "gsh", replace = "gsr", update_n_lines = "gsn",
+        },
+        custom_surroundings = {
+          -- Upstream's `(%w-)` tag name stops at the first hyphen, breaking
+          -- gsdt/gsrt on custom elements (<fl-button>, <app-foo-bar>).
+          t = { input = { "<([%w%-]-)%f[^<%w%-][^<>]->.-</%1>", "^<.->().*()</[^/]->$" } },
+        },
+      })
+    end,
+  },
+
+  {
+    src = gh .. "echasnovski/mini.ai",
+    event = "User VeryLazy",
+    config = function()
+      local ai = require("mini.ai")
+      ai.setup({
+        n_lines = 500,
+        custom_textobjects = {
+          -- Same hyphen widening as mini.surround above, for dit/cit/dat/cat.
+          t = { "<([%w%-]-)%f[^<%w%-][^<>]->.-</%1>", "^<.->().*()</[^/]->$" },
+          -- Sole owner of af/if/ac/ic/aa/ia. See the nvim-treesitter-textobjects
+          -- spec for why the select maps there stay unmapped.
+          f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }),
+          c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }),
+          a = ai.gen_spec.treesitter({ a = "@parameter.outer", i = "@parameter.inner" }),
+        },
+      })
+    end,
+  },
+
+  {
+    src = gh .. "echasnovski/mini.pairs",
+    event = "InsertEnter",
+    config = function()
+      require("mini.pairs").setup()
+    end,
+  },
+
+  -- Pinned to a release tag, which is what lets blink fetch its prebuilt Rust
+  -- matcher instead of needing cargo. See core/completion.lua.
+  {
+    src = gh .. "Saghen/blink.cmp",
+    version = vim.version.range("1.*"),
+    -- Not InsertEnter: blink installs its own insert-mode autocmds, and the one
+    -- that loaded it is already being dispatched, so the first keystroke of the
+    -- session would be missed. VeryLazy is after the first draw either way.
+    event = "User VeryLazy",
+    config = function()
+      require("core.completion").setup()
+    end,
+  },
+
+  -- `event` is not redundant with `keys`. Char mode hooks f/F/t/T, none of
+  -- which are in the keys list, so the plugin has to be loaded before the first
+  -- f press rather than on the first `s`.
+  {
+    src = gh .. "folke/flash.nvim",
+    event = "User VeryLazy",
+    config = function()
+      require("flash").setup()
+    end,
+    keys = {
+      { "s", function() require("flash").jump() end, mode = { "n", "x", "o" }, desc = "Flash" },
+      { "S", function() require("flash").treesitter() end, mode = { "n", "x", "o" }, desc = "Flash Treesitter" },
+      { "r", function() require("flash").remote() end, mode = "o", desc = "Remote Flash" },
+      { "R", function() require("flash").treesitter_search() end, mode = { "o", "x" }, desc = "Treesitter Search" },
+      { "<C-s>", function() require("flash").toggle() end, mode = "c", desc = "Toggle Flash Search" },
+    },
+  },
+
+  -- Per-project indent detection (no native equivalent).
+  { src = gh .. "tpope/vim-sleuth", event = { "BufReadPre", "BufNewFile" } },
+
+  -- ── git ────────────────────────────────────────────────────────────────────
+
+  {
+    src = gh .. "lewis6991/gitsigns.nvim",
+    event = { "BufReadPost", "BufNewFile" },
+    config = function()
+      require("gitsigns").setup({
+        -- Block elements rather than Nerd Font glyphs. They render in any font
+        -- and read as a continuous gutter edge, not as punctuation to decode.
+        signs = {
+          add = { text = "▎" }, change = { text = "▎" }, delete = { text = "▁" },
+          topdelete = { text = "▔" }, changedelete = { text = "▎" }, untracked = { text = "▏" },
+        },
+        -- Staged hunks get a hollow bar, so `git add -p` progress is visible.
+        signs_staged = {
+          add = { text = "▍" }, change = { text = "▍" }, delete = { text = "▁" },
+          topdelete = { text = "▔" }, changedelete = { text = "▍" },
+        },
+        on_attach = function(bufnr)
+          local gs = require("gitsigns")
+          local function map(mode, l, r, opts)
+            opts = opts or {}
+            opts.buffer = bufnr
+            vim.keymap.set(mode, l, r, opts)
+          end
+
+          map("n", "]c", function()
+            if vim.wo.diff then vim.cmd.normal({ "]c", bang = true }) else gs.nav_hunk("next") end
+            vim.cmd("normal! zz")
+          end, { desc = "Next hunk" })
+          map("n", "[c", function()
+            if vim.wo.diff then vim.cmd.normal({ "[c", bang = true }) else gs.nav_hunk("prev") end
+            vim.cmd("normal! zz")
+          end, { desc = "Prev hunk" })
+
+          map("n", "<leader>gb", function() require("core.blame").blame("diff") end, { desc = "Blame line (diff)" })
+          map("n", "<leader>gB", function() require("core.blame").blame("message") end, { desc = "Blame line (message)" })
+          map("n", "<leader>gp", gs.preview_hunk_inline, { desc = "Preview hunk (inline)" })
+          map("n", "<leader>gr", gs.reset_hunk, { desc = "Reset hunk" })
+          map("v", "<leader>gr", function()
+            gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
+          end, { desc = "Reset selected lines" })
+          map("n", "<leader>gS", gs.stage_hunk, { desc = "Stage hunk" })
+          map("n", "<leader>gu", gs.undo_stage_hunk, { desc = "Undo stage hunk" })
+        end,
+      })
+    end,
+  },
+
+  {
+    src = gh .. "tpope/vim-fugitive",
+    cmd = { "Git", "G", "Gclog", "Gdiffsplit", "Gedit", "Gread", "Gwrite", "Ggrep" },
+    keys = {
+      { "<leader>gl", function() require("core.line_history").pick() end, desc = "Line history" },
+      { "<leader>gl", function()
+          local s, e = vim.fn.line("v"), vim.fn.line(".")
+          if s > e then s, e = e, s end
+          vim.cmd("normal! \27")
+          require("core.line_history").pick(s, e)
+        end, mode = "v", desc = "Range history" },
+      { "<leader>gf", function() require("core.line_history").file() end, desc = "File history (current file)" },
+      { "<leader>gd", "<cmd>Gdiffsplit<cr>", desc = "Diff current file vs index" },
+    },
+  },
+
+  -- ── format / lint ──────────────────────────────────────────────────────────
+
+  {
+    src = gh .. "stevearc/conform.nvim",
+    event = "BufWritePre",
+    cmd = "ConformInfo",
+    keys = {
+      { "<leader>cf", function() require("conform").format({ async = true }) end, desc = "Format file" },
+      { "<leader>cf", function() require("conform").format({ async = true }) end, mode = "v", desc = "Format selection" },
+    },
+    config = function()
+      -- A globally installed formatter must not restyle a repo that never opted
+      -- in. pint reformatting a non-Laravel PHP checkout is the case that bites.
+      local function rooted_at(marker)
+        return function(_, ctx)
+          return #vim.fs.find({ marker }, { path = ctx.dirname, upward = true }) > 0
+        end
+      end
+
+      -- php/blade come from whichever profile is active. GAF uses fl-gaf's own
+      -- php-cs-fixer build, everything else resolves pint/blade-formatter per
+      -- buffer. Both are condition-guarded, so a PHP file belonging to neither
+      -- falls through to `lsp_format = "fallback"` below.
+      local php = vim.g.gaf
+        and {
+          by_ft = { php = { "php_cs_fixer" } },
+          formatters = { php_cs_fixer = require("gaf.formatting").php_cs_fixer_formatter() },
+        }
+        or {
+          by_ft = require("artisan").formatters_by_ft(),
+          formatters = require("artisan").formatters(),
+        }
+
+      require("conform").setup({
+        formatters_by_ft = {
+          javascript = { "prettierd", "prettier", stop_after_first = true },
+          typescript = { "prettierd", "prettier", stop_after_first = true },
+          javascriptreact = { "prettierd", "prettier", stop_after_first = true },
+          typescriptreact = { "prettierd", "prettier", stop_after_first = true },
+          -- stylelint comes first because some projects format scss with
+          -- `stylelint --fix` and their prettier only covers *.ts. conform
+          -- resolves it from node_modules and skips it where absent.
+          scss = { "stylelint", "prettierd", "prettier", stop_after_first = true },
+          css = { "stylelint", "prettierd", "prettier", stop_after_first = true },
+          -- html LSP has provideFormatter = false, so conform owns html.
+          html = { "prettierd", "prettier", stop_after_first = true },
+          json = { "prettierd", "prettier", stop_after_first = true },
+          yaml = { "prettierd", "prettier", stop_after_first = true },
+          markdown = { "prettierd", "prettier", stop_after_first = true },
+          python = { "ruff_organize_imports", "ruff_format" },
+          rust = { "rustfmt" },
+          swift = { "swiftformat" },
+          lua = { "stylua" },
+          php = php.by_ft.php,
+          blade = php.by_ft.blade,
+        },
+        formatters = vim.tbl_extend("error", php.formatters, {
+          -- This config's Lua is hand-formatted at 2 spaces and stylua's
+          -- defaults clobber it, so it runs only where a project opts in with
+          -- its own stylua config.
+          stylua = { condition = rooted_at(".stylua.toml") },
+        }),
+        format_on_save = function(bufnr)
+          if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then return end
+          -- php-cs-fixer cold starts overrun the 500ms default. The lsp fallback
+          -- covers filetypes with no conform entry.
+          return { timeout_ms = 3000, lsp_format = "fallback" }
+        end,
+      })
+
+      vim.api.nvim_create_user_command("FormatDisable", function(a)
+        if a.bang then vim.b.disable_autoformat = true else vim.g.disable_autoformat = true end
+      end, { bang = true, desc = "Disable format-on-save (! = buffer only)" })
+      vim.api.nvim_create_user_command("FormatEnable", function()
+        vim.b.disable_autoformat, vim.g.disable_autoformat = false, false
+      end, { desc = "Re-enable format-on-save" })
+    end,
+  },
+
+  -- Nothing here runs before a save, so BufWritePost is both the load trigger and
+  -- the work trigger. The buffer that loaded it is linted by hand below, because
+  -- an autocmd registered mid-dispatch does not fire for that same write.
+  {
+    src = gh .. "mfussenegger/nvim-lint",
+    event = "BufWritePost",
+    config = function()
+      local lint = require("lint")
+      lint.linters_by_ft = {}
+      if vim.fn.executable("swiftlint") == 1 then
+        lint.linters_by_ft.swift = { "swiftlint" }
+      end
+
+      if vim.g.gaf then
+        local paths = require("gaf.paths")
+        local fmt = require("gaf.formatting")
+        local phpcs = lint.linters.phpcs
+        -- Both rulesets set `installed_paths` to cwd-relative vendor paths, so
+        -- phpcs run from anywhere else exits with `Referenced sniff ... does not
+        -- exist` as plain text on stdout, which then blows up the JSON parser.
+        phpcs.cmd = paths.fl_gaf .. "/vendor/bin/phpcs"
+        phpcs.cwd = paths.fl_gaf
+        phpcs.args = fmt.phpcs_args()
+        -- Re-grade through .arclint's per-sniff severity map so the buffer
+        -- agrees with `arc lint` about what actually blocks.
+        phpcs.parser = fmt.phpcs_parser(phpcs.parser)
+        lint.linters_by_ft.php = { "phpcs" }
+      else
+        require("artisan").configure_lint(lint)
+        require("artisan").setup()
+      end
+
+      local function lint_buf(buf)
+        if vim.bo[buf].filetype ~= "php" then
+          lint.try_lint()
+          return
+        end
+        if vim.g.gaf then
+          -- .arclint excludes some PHP from phpcs entirely. support/flarc is
+          -- PHP 7.4 and would fail the 8.1 compatibility sniffs, and the
+          -- phpstan baselines are excluded repo-wide. nvim-lint has no
+          -- per-linter condition, so the exclusion belongs here.
+          local relpath = require("gaf.paths").gaf_relpath(buf)
+          if require("gaf.arclint").phpcs_applies(relpath) then lint.try_lint() end
+          return
+        end
+        -- Eligibility is per project, an artisan root plus a phpstan binary and
+        -- config, while linters_by_ft is global, so php is dispatched per buffer.
+        local names = require("artisan").php_linters(buf)
+        if #names > 0 then lint.try_lint(names) end
+      end
+
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        group = vim.api.nvim_create_augroup("lint", { clear = true }),
+        callback = function(args) lint_buf(args.buf) end,
+      })
+      lint_buf(vim.api.nvim_get_current_buf())
+    end,
+  },
+
+  -- vim API + plugin types when editing this config.
+  {
+    src = gh .. "folke/lazydev.nvim",
+    ft = "lua",
+    config = function()
+      require("lazydev").setup({
+        library = { { path = "${3rd}/luv/library", words = { "vim%.uv" } } },
+      })
+    end,
+  },
+
+  -- ── tests ──────────────────────────────────────────────────────────────────
+  -- No triggers of their own. neotest declares them as `deps` and the keymaps
+  -- that pull neotest in live in core/autocmds.lua, so nothing here touches the
+  -- rtp until the first <leader>t* press.
+
+  { src = gh .. "nvim-lua/plenary.nvim" },
+  { src = gh .. "nvim-neotest/nvim-nio" },
+  { src = gh .. "olimorris/neotest-phpunit" },
+  { src = gh .. "marilari88/neotest-vitest" },
+  { src = gh .. "nvim-neotest/neotest-python" },
+  {
+    src = gh .. "nvim-neotest/neotest",
+    deps = {
+      "plenary.nvim", "nvim-nio",
+      "neotest-phpunit", "neotest-vitest", "neotest-python",
+    },
+    config = function()
+      -- Under GAF, phpunit runs through scripts/neotest-run-tests.sh, which
+      -- wraps bin/run-tests so Docker namespacing, setup and teardown stay with
+      -- the upstream tool. Infra has to be up first, via <leader>tx.
+      local phpunit = vim.g.gaf
+        and require("neotest-phpunit")({
+          phpunit_cmd = vim.fn.stdpath("config") .. "/scripts/neotest-run-tests.sh",
+        })
+        or require("neotest-phpunit")
+
+      require("neotest").setup({
+        adapters = {
+          phpunit,
+          require("neotest-vitest")({
+            -- ui-tests/ are Playwright specs driven by their own runner.
+            is_test_file = function(path)
+              if path:match("ui%-tests/src/.+%.spec%.ts$") then return false end
+              return path:match("%.test%.[mc]?[jt]sx?$") ~= nil
+                or path:match("%.spec%.[mc]?[jt]sx?$") ~= nil
+            end,
+            filter_dir = function(name) return name ~= "node_modules" and name ~= "ui-tests" end,
+          }),
+          require("neotest-python")({ dap = { justMyCode = false } }),
+        },
+        -- With discovery on, the first run in a monorepo recursively walks the
+        -- whole tree looking for test files.
+        discovery = { enabled = false },
+        -- This config renders no virtual text anywhere, and a failed assertion
+        -- already shows in the output panel and the summary.
+        diagnostic = { enabled = false },
+        output = { open_on_run = false },
+        quickfix = { enabled = false },
+      })
+    end,
+  },
+
+  {
+    src = gh .. "folke/which-key.nvim",
+    event = "User VeryLazy",
+    config = function()
+      require("which-key").setup({
+        -- "modern" is a floating rounded box at the bottom, against the legacy
+        -- full-width bar glued to the cmdline.
+        preset = "modern",
+        spec = {
+          { "<leader>b", group = "buffer" },
+          { "<leader>c", group = "code" },
+          { "<leader>cs", group = "swap" },
+          { "<leader>f", group = "find/files" },
+          { "<leader>g", group = "git" },
+          { "<leader>h", group = "harpoon" },
+          { "<leader>s", group = "search" },
+          { "<leader>t", group = "test" },
+          { "<leader>u", group = "ui" },
+          { "<leader>x", group = "diagnostics/quickfix" },
+          { "g", group = "goto" },
+          { "gs", group = "surround" },
+        },
+      })
+    end,
+  },
+})

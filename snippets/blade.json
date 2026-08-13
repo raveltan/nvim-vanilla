@@ -1,0 +1,596 @@
+{
+  "Blade if": {
+    "prefix": "if",
+    "description": "@if / @endif",
+    "body": [
+      "@if (${1:condition})",
+      "\t$0",
+      "@endif"
+    ]
+  },
+  "Blade if/else": {
+    "prefix": "ife",
+    "description": "@if / @else / @endif",
+    "body": [
+      "@if (${1:condition})",
+      "\t$2",
+      "@else",
+      "\t$0",
+      "@endif"
+    ]
+  },
+  "Blade elseif": {
+    "prefix": "elseif",
+    "description": "@elseif",
+    "body": [
+      "@elseif (${1:condition})",
+      "\t$0"
+    ]
+  },
+  "Blade unless": {
+    "prefix": "unless",
+    "description": "@unless / @endunless",
+    "body": [
+      "@unless (${1:condition})",
+      "\t$0",
+      "@endunless"
+    ]
+  },
+  "Blade isset": {
+    "prefix": "isset",
+    "description": "@isset / @endisset",
+    "body": [
+      "@isset(\\$${1:variable})",
+      "\t$0",
+      "@endisset"
+    ]
+  },
+  "Blade empty": {
+    "prefix": "empty",
+    "description": "@empty / @endempty",
+    "body": [
+      "@empty(\\$${1:variable})",
+      "\t$0",
+      "@endempty"
+    ]
+  },
+  "Blade foreach": {
+    "prefix": "foreach",
+    "description": "@foreach / @endforeach",
+    "body": [
+      "@foreach (\\$${1:items} as \\$${2:item})",
+      "\t$0",
+      "@endforeach"
+    ]
+  },
+  "Blade forelse": {
+    "prefix": "forelse",
+    "description": "@forelse / @empty / @endforelse",
+    "body": [
+      "@forelse (\\$${1:items} as \\$${2:item})",
+      "\t$3",
+      "@empty",
+      "\t$0",
+      "@endforelse"
+    ]
+  },
+  "Blade for": {
+    "prefix": "for",
+    "description": "@for / @endfor",
+    "body": [
+      "@for (\\$i = 0; \\$i < ${1:count}; \\$i++)",
+      "\t$0",
+      "@endfor"
+    ]
+  },
+  "Blade while": {
+    "prefix": "while",
+    "description": "@while / @endwhile",
+    "body": [
+      "@while (${1:condition})",
+      "\t$0",
+      "@endwhile"
+    ]
+  },
+  "Blade switch": {
+    "prefix": "switch",
+    "description": "@switch / @case / @default / @endswitch",
+    "body": [
+      "@switch(\\$${1:value})",
+      "\t@case(${2:first})",
+      "\t\t$3",
+      "\t\t@break",
+      "",
+      "\t@default",
+      "\t\t$0",
+      "@endswitch"
+    ]
+  },
+  "Blade extends": {
+    "prefix": "extends",
+    "description": "@extends",
+    "body": [
+      "@extends('${1:layouts.app}')",
+      "$0"
+    ]
+  },
+  "Blade section": {
+    "prefix": "section",
+    "description": "@section / @endsection",
+    "body": [
+      "@section('${1:content}')",
+      "\t$0",
+      "@endsection"
+    ]
+  },
+  "Blade section inline": {
+    "prefix": "sectioni",
+    "description": "@section with inline value",
+    "body": [
+      "@section('${1:title}', '${2:value}')",
+      "$0"
+    ]
+  },
+  "Blade yield": {
+    "prefix": "yield",
+    "description": "@yield",
+    "body": [
+      "@yield('${1:content}')",
+      "$0"
+    ]
+  },
+  "Blade parent": {
+    "prefix": "parent",
+    "description": "@parent",
+    "body": [
+      "@parent",
+      "$0"
+    ]
+  },
+  "Blade include": {
+    "prefix": "include",
+    "description": "@include",
+    "body": [
+      "@include('${1:partials.name}')",
+      "$0"
+    ]
+  },
+  "Blade include with data": {
+    "prefix": "included",
+    "description": "@include with data array",
+    "body": [
+      "@include('${1:partials.name}', ['${2:key}' => \\$${3:value}])",
+      "$0"
+    ]
+  },
+  "Blade includeIf": {
+    "prefix": "includeif",
+    "description": "@includeIf (silent when missing)",
+    "body": [
+      "@includeIf('${1:partials.name}')",
+      "$0"
+    ]
+  },
+  "Blade includeWhen": {
+    "prefix": "includewhen",
+    "description": "@includeWhen",
+    "body": [
+      "@includeWhen(${1:condition}, '${2:partials.name}')",
+      "$0"
+    ]
+  },
+  "Blade includeFirst": {
+    "prefix": "includefirst",
+    "description": "@includeFirst (first view that exists)",
+    "body": [
+      "@includeFirst(['${1:custom.name}', '${2:partials.name}'])",
+      "$0"
+    ]
+  },
+  "Blade each": {
+    "prefix": "each",
+    "description": "@each (view per item, with empty fallback)",
+    "body": [
+      "@each('${1:partials.item}', \\$${2:items}, '${3:item}', '${4:partials.empty}')",
+      "$0"
+    ]
+  },
+  "Blade component": {
+    "prefix": "component",
+    "description": "@component / @endcomponent",
+    "body": [
+      "@component('${1:components.name}')",
+      "\t$0",
+      "@endcomponent"
+    ]
+  },
+  "Blade component tag": {
+    "prefix": "x",
+    "description": "<x-component /> tag",
+    "body": [
+      "<x-${1:name} $0/>"
+    ]
+  },
+  "Blade slot": {
+    "prefix": "slot",
+    "description": "<x-slot> named slot",
+    "body": [
+      "<x-slot:${1:name}>",
+      "\t$0",
+      "</x-slot>"
+    ]
+  },
+  "Blade props": {
+    "prefix": "props",
+    "description": "@props (anonymous component)",
+    "body": [
+      "@props(['${1:name}' => ${2:null}])",
+      "$0"
+    ]
+  },
+  "Blade aware": {
+    "prefix": "aware",
+    "description": "@aware (inherit a parent component's prop)",
+    "body": [
+      "@aware(['${1:name}' => ${2:null}])",
+      "$0"
+    ]
+  },
+  "Blade push": {
+    "prefix": "push",
+    "description": "@push / @endpush",
+    "body": [
+      "@push('${1:scripts}')",
+      "\t$0",
+      "@endpush"
+    ]
+  },
+  "Blade pushOnce": {
+    "prefix": "pushonce",
+    "description": "@pushOnce / @endPushOnce",
+    "body": [
+      "@pushOnce('${1:scripts}')",
+      "\t$0",
+      "@endPushOnce"
+    ]
+  },
+  "Blade prepend": {
+    "prefix": "prepend",
+    "description": "@prepend / @endprepend",
+    "body": [
+      "@prepend('${1:scripts}')",
+      "\t$0",
+      "@endprepend"
+    ]
+  },
+  "Blade stack": {
+    "prefix": "stack",
+    "description": "@stack",
+    "body": [
+      "@stack('${1:scripts}')",
+      "$0"
+    ]
+  },
+  "Blade once": {
+    "prefix": "once",
+    "description": "@once / @endonce",
+    "body": [
+      "@once",
+      "\t$0",
+      "@endonce"
+    ]
+  },
+  "Blade verbatim": {
+    "prefix": "verbatim",
+    "description": "@verbatim (leave {{ }} to a JS framework)",
+    "body": [
+      "@verbatim",
+      "\t$0",
+      "@endverbatim"
+    ]
+  },
+  "Blade php": {
+    "prefix": "php",
+    "description": "@php / @endphp",
+    "body": [
+      "@php",
+      "\t$0",
+      "@endphp"
+    ]
+  },
+  "Blade use": {
+    "prefix": "use",
+    "description": "@use (import a class into the view)",
+    "body": [
+      "@use('${1:App\\\\Models\\\\User}')",
+      "$0"
+    ]
+  },
+  "Blade csrf": {
+    "prefix": "csrf",
+    "description": "@csrf hidden token field",
+    "body": [
+      "@csrf",
+      "$0"
+    ]
+  },
+  "Blade method": {
+    "prefix": "method",
+    "description": "@method form-method spoof",
+    "body": [
+      "@method('${1|PUT,PATCH,DELETE|}')",
+      "$0"
+    ]
+  },
+  "Blade auth": {
+    "prefix": "auth",
+    "description": "@auth / @endauth",
+    "body": [
+      "@auth",
+      "\t$0",
+      "@endauth"
+    ]
+  },
+  "Blade guest": {
+    "prefix": "guest",
+    "description": "@guest / @endguest",
+    "body": [
+      "@guest",
+      "\t$0",
+      "@endguest"
+    ]
+  },
+  "Blade can": {
+    "prefix": "can",
+    "description": "@can / @endcan",
+    "body": [
+      "@can('${1:ability}', \\$${2:model})",
+      "\t$0",
+      "@endcan"
+    ]
+  },
+  "Blade cannot": {
+    "prefix": "cannot",
+    "description": "@cannot / @endcannot",
+    "body": [
+      "@cannot('${1:ability}', \\$${2:model})",
+      "\t$0",
+      "@endcannot"
+    ]
+  },
+  "Blade canany": {
+    "prefix": "canany",
+    "description": "@canany / @endcanany",
+    "body": [
+      "@canany(['${1:ability}'], \\$${2:model})",
+      "\t$0",
+      "@endcanany"
+    ]
+  },
+  "Blade env": {
+    "prefix": "env",
+    "description": "@env / @endenv",
+    "body": [
+      "@env('${1:local}')",
+      "\t$0",
+      "@endenv"
+    ]
+  },
+  "Blade production": {
+    "prefix": "production",
+    "description": "@production / @endproduction",
+    "body": [
+      "@production",
+      "\t$0",
+      "@endproduction"
+    ]
+  },
+  "Blade error": {
+    "prefix": "error",
+    "description": "@error validation message",
+    "body": [
+      "@error('${1:field}')",
+      "\t<span class=\"${2:text-red-600}\">{{ \\$message }}</span>",
+      "@enderror"
+    ]
+  },
+  "Blade session": {
+    "prefix": "session",
+    "description": "@session / @endsession",
+    "body": [
+      "@session('${1:status}')",
+      "\t$0",
+      "@endsession"
+    ]
+  },
+  "Blade hasSection": {
+    "prefix": "hassection",
+    "description": "@hasSection / @endif",
+    "body": [
+      "@hasSection('${1:content}')",
+      "\t$0",
+      "@endif"
+    ]
+  },
+  "Blade class": {
+    "prefix": "class",
+    "description": "@class conditional classes",
+    "body": [
+      "@class(['${1:base}', '${2:conditional}' => ${3:condition}])",
+      "$0"
+    ]
+  },
+  "Blade style": {
+    "prefix": "style",
+    "description": "@style conditional inline styles",
+    "body": [
+      "@style(['${1:prop: value}' => ${2:condition}])",
+      "$0"
+    ]
+  },
+  "Blade checked": {
+    "prefix": "checked",
+    "description": "@checked",
+    "body": [
+      "@checked(${1:condition})",
+      "$0"
+    ]
+  },
+  "Blade selected": {
+    "prefix": "selected",
+    "description": "@selected",
+    "body": [
+      "@selected(${1:condition})",
+      "$0"
+    ]
+  },
+  "Blade disabled": {
+    "prefix": "disabled",
+    "description": "@disabled",
+    "body": [
+      "@disabled(${1:condition})",
+      "$0"
+    ]
+  },
+  "Blade required": {
+    "prefix": "required",
+    "description": "@required",
+    "body": [
+      "@required(${1:condition})",
+      "$0"
+    ]
+  },
+  "Blade vite": {
+    "prefix": "vite",
+    "description": "@vite asset bundle",
+    "body": [
+      "@vite(['resources/css/app.css', 'resources/js/app.js'])",
+      "$0"
+    ]
+  },
+  "Blade json": {
+    "prefix": "json",
+    "description": "@json (safe PHP → JS handoff)",
+    "body": [
+      "@json(\\$${1:data})",
+      "$0"
+    ]
+  },
+  "Blade lang": {
+    "prefix": "lang",
+    "description": "Translation string",
+    "body": [
+      "{{ __('${1:key}') }}",
+      "$0"
+    ]
+  },
+  "Blade echo": {
+    "prefix": "ee",
+    "description": "Escaped echo",
+    "body": [
+      "{{ ${1:expression} }}",
+      "$0"
+    ]
+  },
+  "Blade raw echo": {
+    "prefix": "eee",
+    "description": "Unescaped echo — only for markup you produced",
+    "body": [
+      "{!! ${1:expression} !!}",
+      "$0"
+    ]
+  },
+  "Blade comment": {
+    "prefix": "cc",
+    "description": "Blade comment (stripped from output)",
+    "body": [
+      "{{-- ${1:comment} --}}",
+      "$0"
+    ]
+  },
+  "Blade dd": {
+    "prefix": "dd",
+    "description": "@dd",
+    "body": [
+      "@dd(\\$${1:variable})",
+      "$0"
+    ]
+  },
+  "Blade dump": {
+    "prefix": "dump",
+    "description": "@dump",
+    "body": [
+      "@dump(\\$${1:variable})",
+      "$0"
+    ]
+  },
+  "Blade fragment": {
+    "prefix": "fragment",
+    "description": "@fragment / @endfragment (partial re-render target)",
+    "body": [
+      "@fragment('${1:name}')",
+      "\t$0",
+      "@endfragment"
+    ]
+  },
+  "Livewire directive": {
+    "prefix": "livewire",
+    "description": "@livewire component render",
+    "body": [
+      "@livewire('${1:name}')",
+      "$0"
+    ]
+  },
+  "Livewire tag": {
+    "prefix": "lw",
+    "description": "<livewire:component /> tag",
+    "body": [
+      "<livewire:${1:name} $0/>"
+    ]
+  },
+  "Livewire persist": {
+    "prefix": "persist",
+    "description": "@persist (keep element across wire:navigate)",
+    "body": [
+      "@persist('${1:name}')",
+      "\t$0",
+      "@endpersist"
+    ]
+  },
+  "Livewire teleport": {
+    "prefix": "teleport",
+    "description": "@teleport (move markup elsewhere in the DOM)",
+    "body": [
+      "@teleport('${1:body}')",
+      "\t$0",
+      "@endteleport"
+    ]
+  },
+  "Livewire script": {
+    "prefix": "lwscript",
+    "description": "@script / @endscript (runs once per component)",
+    "body": [
+      "@script",
+      "<script>",
+      "\t$0",
+      "</script>",
+      "@endscript"
+    ]
+  },
+  "Livewire assets": {
+    "prefix": "lwassets",
+    "description": "@assets / @endassets (loaded once per page)",
+    "body": [
+      "@assets",
+      "\t$0",
+      "@endassets"
+    ]
+  },
+  "Livewire entangle": {
+    "prefix": "entangle",
+    "description": "Alpine x-data entangled with a Livewire property",
+    "body": [
+      "x-data=\"{ ${1:open}: @entangle('${2:open}') }\"$0"
+    ]
+  }
+}
