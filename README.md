@@ -1,9 +1,10 @@
 # nvim-vanilla
 
-Native-first Neovim 0.12. **31 plugins** (24 direct + neotest's stack),
-**4,699 lines** of Lua, no plugin manager. About 1,850 of those lines are ported
-carry-overs (`tagmatch`, `rename`, `scss`, `blame`, `gaf/`, `artisan`) rather
-than new config.
+Native-first Neovim 0.12. **30 plugins** (24 direct + neotest's six-piece stack),
+**8,400 lines** of Lua, no plugin manager. About 5,500 of those lines are ported
+carry-overs (`gaf/` 4,020, `tagmatch` 310, `artisan` 370, and the
+`rename`/`scss`/`blame`/`line_history`/`wordsearch`/`foldtext` helpers 830) rather
+than new config. The config itself is the remaining ~2,900.
 
 Startup is about 0.7x the 102-plugin config it replaces, 16.4ms against 23.9ms
 measured back to back. Absolute figures move with machine load, so compare the
@@ -58,7 +59,7 @@ plugin of the same name.
 |---|---|
 | lazy.nvim | `vim.pack` + `lua/core/pack.lua` |
 | mason, mason-lspconfig, mason-tool-installer | `vim.lsp.config` / `vim.lsp.enable`, binaries from brew/npm/pipx |
-| LuaSnip, friendly-snippets | `vim.snippet` + `lua/core/snippets.lua` (JSON packs in `snippets/`, served to the menu by `lua/core/snippet_source.lua`) |
+| LuaSnip, friendly-snippets | `vim.snippet` + `lua/core/snippets.lua` (JSON packs in `snippets/`, served to the menu by `lua/core/snippet_source.lua`; the `laravel/` and `pest/` overlays are gated on the buffer's project, not on the profile, because packs are read per buffer instead of into a global registry) |
 | lualine, noice, fidget, harpoon-lualine | `lua/core/statusline.lua` (`vim.lsp.status()` for progress) |
 | snacks.nvim | fzf-lua for pickers, `lua/core/toggle.lua` for the toggle registry, bigfile/prose autocmds |
 | trouble, quicker | quickfix + `vim.diagnostic.setqflist()` + `:cdo` |
@@ -91,9 +92,11 @@ lua/core/{toggle,harpoon,todo,case,snippets}.lua   native plugin replacements
 lua/core/{rename,scss,blame,line_history,wordsearch,foldtext}.lua   ported helpers
 lua/tagmatch/          treesitter tag matching (%, i%/a%, tag rename)
 lua/gaf/angular/       Angular navigation + template completion (GAF only)
+lua/overseer/template/user/   GAF Playwright UI-test tasks for `<leader>or`
 after/ftplugin/        blade commentstring, markdown gf
 after/queries/blade/   indent fixes upstream lacks
-snippets/*.json        VS Code-format snippet packs
+snippets/*.json        VS Code-format snippet packs (filename = filetype)
+snippets/{laravel,pest}/   overlay packs, added only in a matching project
 ```
 
 ## Commands
@@ -107,7 +110,8 @@ snippets/*.json        VS Code-format snippet packs
 | `:PackClean` | delete plugins no longer in the spec list |
 | `:TSSync` | install/update every treesitter parser, blocking |
 | `:LspServers` | which servers are on `$PATH` |
-| `:SnippetsEdit` | edit this filetype's snippet pack |
+| `:SnippetsEdit [laravel\|pest]` | edit this filetype's snippet pack, or one of its overlay packs |
+| `:SnippetsReload` | drop the snippet caches and re-read `snippets/` |
 | `:FormatDisable[!]` / `:FormatEnable` | turn format-on-save off / on (`!` = buffer only) |
 | `:Todo[!]` | TODO comments → quickfix (`!` = this buffer) |
 | `:LaravelPhpstan [level]` | whole-project phpstan → quickfix |
@@ -137,5 +141,5 @@ rustup component add rust-analyzer
 
 Cosmetics (noice, satellite, hlargs, rainbow-delimiters, colorizer,
 treesitter-context, dashboard), terminal toggle, undotree, obsidian, DAP,
-dadbod, overseer, devdocs, kulala, flutter, xcodebuild, laravel.nvim, and
+dadbod, devdocs, kulala, flutter, xcodebuild, laravel.nvim, and
 anything Ruby. Those stay in `~/.config/nvim`, reachable with `gv`.

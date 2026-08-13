@@ -2,7 +2,7 @@
 -- builtin vim.pack.
 --
 -- Anything not listed is either native (core/*.lua) or deliberately gone:
--- cosmetics, terminal, undotree, obsidian, dap, dadbod, overseer.
+-- cosmetics, terminal, undotree, obsidian, dap, dadbod.
 
 local pack = require("core.pack")
 local gh = "https://github.com/"
@@ -51,6 +51,30 @@ local function projects()
       },
     })
   end))
+end
+
+-- Pick a task, then run one overseer action on it. `include_ephemeral` keeps
+-- one-shot shell commands in the list, which is where most of them come from.
+local function task_action(action, prompt)
+  return function()
+    local task_list = require("overseer.task_list")
+    local tasks = task_list.list_tasks({
+      unique = true,
+      sort = task_list.sort_finished_recently,
+      include_ephemeral = true,
+    })
+    if #tasks == 0 then
+      vim.notify("No tasks available", vim.log.levels.WARN)
+      return
+    end
+    vim.ui.select(tasks, {
+      prompt = prompt,
+      kind = "overseer_task",
+      format_item = function(t) return t.name end,
+    }, function(task)
+      if task then require("overseer.action_util").run_task_action(task, action) end
+    end)
+  end
 end
 
 -- ── specs ────────────────────────────────────────────────────────────────────
@@ -720,6 +744,50 @@ pack.setup({
     end,
   },
 
+  -- ── tasks ──────────────────────────────────────────────────────────────────
+
+  {
+    src = gh .. "stevearc/overseer.nvim",
+    cmd = { "OverseerRun", "OverseerShell", "OverseerToggle", "OverseerTaskAction", "OverseerOpen", "OverseerClose" },
+    keys = {
+      { "<leader>or", "<cmd>OverseerRun<cr>", desc = "Run task" },
+      { "<leader>oc", "<cmd>OverseerShell<cr>", desc = "Run shell command" },
+      { "<leader>ol", task_action("open float", "Open task (float)"), desc = "Open task in float" },
+      { "<leader>oh", task_action("open hsplit", "Open task (hsplit)"), desc = "Open task in hsplit" },
+      { "<leader>ov", task_action("open vsplit", "Open task (vsplit)"), desc = "Open task in vsplit" },
+      { "<leader>od", task_action("dispose", "Dispose task"), desc = "Dispose task" },
+    },
+    config = function()
+      require("overseer").setup({
+        -- overseer/template/user/ is the GAF Playwright runner. Its condition
+        -- already rejects a non-webapp cwd; disabling the module outside GAF keeps
+        -- `<leader>or` from require()ing gaf/ modules at all elsewhere.
+        disable_template_modules = vim.g.gaf and {} or { "^overseer%.template%.user%." },
+        task_list = {
+          direction = "bottom",
+          min_height = 8,
+          max_height = { 20, 0.2 },
+          -- Default <CR> opens output in the task list's own split, which is 8
+          -- lines tall. Float instead, same as the pickers above.
+          keymaps = {
+            ["<CR>"] = { "keymap.open", opts = { dir = "float" }, desc = "Open task output in float" },
+            ["o"] = { "keymap.open", opts = { dir = "float" }, desc = "Open task output in float" },
+          },
+        },
+        component_aliases = {
+          default = {
+            { "open_output", on_start = "always", direction = "float", focus = true },
+            "on_exit_set_status",
+            "on_complete_notify",
+            -- Finished tasks stay in the list until viewed once, then clear
+            -- themselves, so the list is only what still needs attention.
+            { "on_complete_dispose", require_view = { "SUCCESS", "FAILURE" } },
+          },
+        },
+      })
+    end,
+  },
+
   {
     src = gh .. "folke/which-key.nvim",
     event = "User VeryLazy",
@@ -735,6 +803,7 @@ pack.setup({
           { "<leader>f", group = "find/files" },
           { "<leader>g", group = "git" },
           { "<leader>h", group = "harpoon" },
+          { "<leader>o", group = "overseer" },
           { "<leader>s", group = "search" },
           { "<leader>t", group = "test" },
           { "<leader>u", group = "ui" },

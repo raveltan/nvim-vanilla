@@ -12,15 +12,15 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
--- The pack is read once per filetype and cached, so rebuilding the item list per
--- keystroke would be the expensive half. Cache the shaped items too.
+-- Rebuilding the item list on every keystroke would be the expensive half, so the
+-- shaped items are cached under the key core.snippets hands back -- a filetype
+-- plus its project's overlay packs.
 local items_cache = {}
 
-local function items_for(ft)
-  local hit = items_cache[ft]
-  if hit then return hit end
+local function items_for(key, snips)
+  if items_cache[key] then return items_cache[key] end
   local out = {}
-  for i, s in ipairs(snippets.for_filetype(ft)) do
+  for i, s in ipairs(snips) do
     out[i] = {
       label = s.prefix,
       filterText = s.prefix,
@@ -32,7 +32,7 @@ local function items_for(ft)
       documentation = { kind = "markdown", value = s.desc .. "\n\n```\n" .. s.body .. "\n```" },
     }
   end
-  items_cache[ft] = out
+  items_cache[key] = out
   return out
 end
 
@@ -45,7 +45,7 @@ function M:get_completions(_, callback)
   callback({
     is_incomplete_forward = false,
     is_incomplete_backward = false,
-    items = items_for(vim.bo.filetype),
+    items = items_for(snippets.for_buffer()),
   })
 end
 

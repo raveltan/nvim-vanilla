@@ -1,0 +1,1232 @@
+{
+  "Laravel model": {
+    "prefix": "lmodel",
+    "description": "Eloquent model (casts() method, HasFactory)",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Models;",
+      "",
+      "use Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\HasFactory;",
+      "use Illuminate\\\\Database\\\\Eloquent\\\\Model;",
+      "",
+      "class ${1:Post} extends Model",
+      "{",
+      "\tuse HasFactory;",
+      "",
+      "\t/**",
+      "\t * @var list<string>",
+      "\t */",
+      "\tprotected \\$fillable = [",
+      "\t\t'${2:title}',",
+      "\t];",
+      "",
+      "\t/**",
+      "\t * @return array<string, string>",
+      "\t */",
+      "\tprotected function casts(): array",
+      "\t{",
+      "\t\treturn [",
+      "\t\t\t'${3:published_at}' => 'datetime',",
+      "\t\t];",
+      "\t}",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Laravel model casts": {
+    "prefix": "lcasts",
+    "description": "casts() method (Laravel 11+ replacement for §casts)",
+    "body": [
+      "/**",
+      " * @return array<string, string>",
+      " */",
+      "protected function casts(): array",
+      "{",
+      "\treturn [",
+      "\t\t'${1:published_at}' => '${2|datetime,boolean,integer,array,encrypted,hashed,collection|}',$0",
+      "\t];",
+      "}"
+    ]
+  },
+  "Laravel model scope": {
+    "prefix": "lscope",
+    "description": "#[Scope] query scope — Illuminate\\Database\\Eloquent\\Attributes\\Scope",
+    "body": [
+      "#[Scope]",
+      "protected function ${1:published}(Builder \\$query${2:, string \\$type}): void",
+      "{",
+      "\t\\$query->where('${3:published_at}', '${4:<=}', ${5:now()});$0",
+      "}"
+    ]
+  },
+  "Laravel model accessor": {
+    "prefix": "lattr",
+    "description": "Accessor/mutator via Attribute::make (Eloquent\\Casts\\Attribute)",
+    "body": [
+      "protected function ${1:title}(): Attribute",
+      "{",
+      "\treturn Attribute::make(",
+      "\t\tget: fn (${2:string} \\$value): ${3:string} => $0,",
+      "\t);",
+      "}"
+    ]
+  },
+  "Laravel belongsTo": {
+    "prefix": "lbelongsto",
+    "description": "belongsTo relation with return type",
+    "body": [
+      "public function ${1:author}(): BelongsTo",
+      "{",
+      "\treturn \\$this->belongsTo(${2:User}::class);$0",
+      "}"
+    ]
+  },
+  "Laravel hasMany": {
+    "prefix": "lhasmany",
+    "description": "hasMany relation with return type",
+    "body": [
+      "public function ${1:comments}(): HasMany",
+      "{",
+      "\treturn \\$this->hasMany(${2:Comment}::class);$0",
+      "}"
+    ]
+  },
+  "Laravel hasOne": {
+    "prefix": "lhasone",
+    "description": "hasOne relation with return type",
+    "body": [
+      "public function ${1:profile}(): HasOne",
+      "{",
+      "\treturn \\$this->hasOne(${2:Profile}::class);$0",
+      "}"
+    ]
+  },
+  "Laravel belongsToMany": {
+    "prefix": "lbelongstomany",
+    "description": "belongsToMany relation with pivot",
+    "body": [
+      "public function ${1:tags}(): BelongsToMany",
+      "{",
+      "\treturn \\$this->belongsToMany(${2:Tag}::class)",
+      "\t\t->withTimestamps();$0",
+      "}"
+    ]
+  },
+  "Laravel morphMany": {
+    "prefix": "lmorphmany",
+    "description": "morphMany polymorphic relation",
+    "body": [
+      "public function ${1:comments}(): MorphMany",
+      "{",
+      "\treturn \\$this->morphMany(${2:Comment}::class, '${3:commentable}');$0",
+      "}"
+    ]
+  },
+  "Laravel migration": {
+    "prefix": "lmig",
+    "description": "Anonymous-class migration with Schema::create",
+    "body": [
+      "<?php",
+      "",
+      "use Illuminate\\\\Database\\\\Migrations\\\\Migration;",
+      "use Illuminate\\\\Database\\\\Schema\\\\Blueprint;",
+      "use Illuminate\\\\Support\\\\Facades\\\\Schema;",
+      "",
+      "return new class extends Migration",
+      "{",
+      "\tpublic function up(): void",
+      "\t{",
+      "\t\tSchema::create('${1:posts}', function (Blueprint \\$table) {",
+      "\t\t\t\\$table->id();",
+      "\t\t\t$0",
+      "\t\t\t\\$table->timestamps();",
+      "\t\t});",
+      "\t}",
+      "",
+      "\tpublic function down(): void",
+      "\t{",
+      "\t\tSchema::dropIfExists('${1:posts}');",
+      "\t}",
+      "};"
+    ]
+  },
+  "Laravel migration alter": {
+    "prefix": "lmigtable",
+    "description": "Anonymous-class migration that alters a table",
+    "body": [
+      "<?php",
+      "",
+      "use Illuminate\\\\Database\\\\Migrations\\\\Migration;",
+      "use Illuminate\\\\Database\\\\Schema\\\\Blueprint;",
+      "use Illuminate\\\\Support\\\\Facades\\\\Schema;",
+      "",
+      "return new class extends Migration",
+      "{",
+      "\tpublic function up(): void",
+      "\t{",
+      "\t\tSchema::table('${1:posts}', function (Blueprint \\$table) {",
+      "\t\t\t\\$table->${2:string}('${3:column}')${4:->nullable()};$0",
+      "\t\t});",
+      "\t}",
+      "",
+      "\tpublic function down(): void",
+      "\t{",
+      "\t\tSchema::table('${1:posts}', function (Blueprint \\$table) {",
+      "\t\t\t\\$table->dropColumn('${3:column}');",
+      "\t\t});",
+      "\t}",
+      "};"
+    ]
+  },
+  "Laravel controller": {
+    "prefix": "lctl",
+    "description": "Controller with Laravel 13 #[Middleware] attribute",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Http\\\\Controllers;",
+      "",
+      "use Illuminate\\\\Http\\\\Request;",
+      "use Illuminate\\\\Routing\\\\Attributes\\\\Controllers\\\\Middleware;",
+      "",
+      "#[Middleware('${1:auth}')]",
+      "class ${2:PostController}",
+      "{",
+      "\tpublic function index(Request \\$request)",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel invokable controller": {
+    "prefix": "lctli",
+    "description": "Single-action controller (__invoke)",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Http\\\\Controllers;",
+      "",
+      "use Illuminate\\\\Http\\\\Request;",
+      "",
+      "class ${1:PublishPost}",
+      "{",
+      "\tpublic function __invoke(Request \\$request${2:, ${3:Post} \\$${4:post}})",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel authorize attribute": {
+    "prefix": "lauthz",
+    "description": "#[Authorize] policy shortcut — Routing\\Attributes\\Controllers\\Authorize",
+    "body": [
+      "#[Authorize('${1:update}', '${2:post}')]",
+      "$0"
+    ]
+  },
+  "Laravel form request": {
+    "prefix": "lreq",
+    "description": "FormRequest with authorize() + rules()",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Http\\\\Requests;",
+      "",
+      "use Illuminate\\\\Foundation\\\\Http\\\\FormRequest;",
+      "",
+      "class ${1:StorePostRequest} extends FormRequest",
+      "{",
+      "\tpublic function authorize(): bool",
+      "\t{",
+      "\t\treturn ${2:true};",
+      "\t}",
+      "",
+      "\t/**",
+      "\t * @return array<string, mixed>",
+      "\t */",
+      "\tpublic function rules(): array",
+      "\t{",
+      "\t\treturn [",
+      "\t\t\t'${3:title}' => ['required', 'string', 'max:255'],$0",
+      "\t\t];",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel API resource": {
+    "prefix": "lres",
+    "description": "JsonResource with toArray()",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Http\\\\Resources;",
+      "",
+      "use Illuminate\\\\Http\\\\Request;",
+      "use Illuminate\\\\Http\\\\Resources\\\\Json\\\\JsonResource;",
+      "",
+      "class ${1:PostResource} extends JsonResource",
+      "{",
+      "\t/**",
+      "\t * @return array<string, mixed>",
+      "\t */",
+      "\tpublic function toArray(Request \\$request): array",
+      "\t{",
+      "\t\treturn [",
+      "\t\t\t'id' => \\$this->id,",
+      "\t\t\t'${2:title}' => \\$this->${2:title},$0",
+      "\t\t];",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel JSON:API resource": {
+    "prefix": "ljsonapi",
+    "description": "JsonApiResource (Laravel 13) — make:resource --json-api",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Http\\\\Resources;",
+      "",
+      "use Illuminate\\\\Http\\\\Request;",
+      "use Illuminate\\\\Http\\\\Resources\\\\JsonApi\\\\JsonApiResource;",
+      "",
+      "class ${1:PostResource} extends JsonApiResource",
+      "{",
+      "\t/**",
+      "\t * The resource's attributes.",
+      "\t */",
+      "\tpublic \\$attributes = [",
+      "\t\t'${2:title}',$0",
+      "\t];",
+      "",
+      "\t/**",
+      "\t * The resource's relationships.",
+      "\t */",
+      "\tpublic \\$relationships = [",
+      "\t\t'${3:author}',",
+      "\t];",
+      "}"
+    ]
+  },
+  "Laravel middleware": {
+    "prefix": "lmw",
+    "description": "Middleware class",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Http\\\\Middleware;",
+      "",
+      "use Closure;",
+      "use Illuminate\\\\Http\\\\Request;",
+      "use Symfony\\\\Component\\\\HttpFoundation\\\\Response;",
+      "",
+      "class ${1:EnsureTokenIsValid}",
+      "{",
+      "\tpublic function handle(Request \\$request, Closure \\$next): Response",
+      "\t{",
+      "\t\t$0",
+      "",
+      "\t\treturn \\$next(\\$request);",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel route": {
+    "prefix": "lroute",
+    "description": "Route to a controller action",
+    "body": [
+      "Route::${1|get,post,put,patch,delete|}('/${2:posts}', [${3:PostController}::class, '${4:index}'])",
+      "\t->name('${5:posts.index}');$0"
+    ]
+  },
+  "Laravel resource route": {
+    "prefix": "lrouteres",
+    "description": "Route::resource / apiResource",
+    "body": [
+      "Route::${1|resource,apiResource|}('${2:posts}', ${3:PostController}::class)",
+      "\t->${4|only,except|}(['${5:index}', '${6:show}']);$0"
+    ]
+  },
+  "Laravel route group": {
+    "prefix": "lroutegroup",
+    "description": "Route group with middleware + prefix",
+    "body": [
+      "Route::middleware(['${1:auth}'])",
+      "\t->prefix('${2:admin}')",
+      "\t->name('${3:admin.}')",
+      "\t->group(function () {",
+      "\t\t$0",
+      "\t});"
+    ]
+  },
+  "Laravel Livewire route": {
+    "prefix": "lroutelw",
+    "description": "Route::livewire() — Livewire 4 page component",
+    "body": [
+      "Route::livewire('/${1:posts/create}', '${2:pages::post.create}')",
+      "\t->name('${3:posts.create}');$0"
+    ]
+  },
+  "Laravel job": {
+    "prefix": "ljob",
+    "description": "Queued job with #[Tries]/#[Timeout] attributes (Laravel 13)",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Jobs;",
+      "",
+      "use Illuminate\\\\Contracts\\\\Queue\\\\ShouldQueue;",
+      "use Illuminate\\\\Foundation\\\\Queue\\\\Queueable;",
+      "use Illuminate\\\\Queue\\\\Attributes\\\\Timeout;",
+      "use Illuminate\\\\Queue\\\\Attributes\\\\Tries;",
+      "",
+      "#[Tries(${1:5})]",
+      "#[Timeout(${2:120})]",
+      "class ${3:ProcessPodcast} implements ShouldQueue",
+      "{",
+      "\tuse Queueable;",
+      "",
+      "\tpublic function __construct(",
+      "\t\tpublic ${4:Podcast} \\$${5:podcast},",
+      "\t) {}",
+      "",
+      "\tpublic function handle(): void",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel queue routing": {
+    "prefix": "lqroute",
+    "description": "Queue::route() — central job → queue/connection mapping (Laravel 13)",
+    "body": [
+      "Queue::route(${1:ProcessPodcast}::class, connection: '${2:redis}', queue: '${3:podcasts}');$0"
+    ]
+  },
+  "Laravel event": {
+    "prefix": "levent",
+    "description": "Broadcastable event class",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Events;",
+      "",
+      "use Illuminate\\\\Foundation\\\\Events\\\\Dispatchable;",
+      "use Illuminate\\\\Queue\\\\SerializesModels;",
+      "",
+      "class ${1:PostPublished}",
+      "{",
+      "\tuse Dispatchable, SerializesModels;",
+      "",
+      "\tpublic function __construct(",
+      "\t\tpublic ${2:Post} \\$${3:post},",
+      "\t) {}$0",
+      "}"
+    ]
+  },
+  "Laravel listener": {
+    "prefix": "llistener",
+    "description": "Queued event listener",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Listeners;",
+      "",
+      "use App\\\\Events\\\\${1:PostPublished};",
+      "use Illuminate\\\\Contracts\\\\Queue\\\\ShouldQueue;",
+      "",
+      "class ${2:NotifySubscribers} implements ShouldQueue",
+      "{",
+      "\tpublic function handle(${1:PostPublished} \\$event): void",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel notification": {
+    "prefix": "lnotif",
+    "description": "Notification with via() + toMail()",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Notifications;",
+      "",
+      "use Illuminate\\\\Bus\\\\Queueable;",
+      "use Illuminate\\\\Contracts\\\\Queue\\\\ShouldQueue;",
+      "use Illuminate\\\\Notifications\\\\Messages\\\\MailMessage;",
+      "use Illuminate\\\\Notifications\\\\Notification;",
+      "",
+      "class ${1:PostPublished} extends Notification implements ShouldQueue",
+      "{",
+      "\tuse Queueable;",
+      "",
+      "\t/**",
+      "\t * @return list<string>",
+      "\t */",
+      "\tpublic function via(object \\$notifiable): array",
+      "\t{",
+      "\t\treturn ['mail'];",
+      "\t}",
+      "",
+      "\tpublic function toMail(object \\$notifiable): MailMessage",
+      "\t{",
+      "\t\treturn (new MailMessage)",
+      "\t\t\t->subject('${2:Subject}')",
+      "\t\t\t->line('${3:Message}')",
+      "\t\t\t->action('${4:View}', url('/'));$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel mailable": {
+    "prefix": "lmail",
+    "description": "Mailable with Envelope + Content",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Mail;",
+      "",
+      "use Illuminate\\\\Bus\\\\Queueable;",
+      "use Illuminate\\\\Mail\\\\Mailable;",
+      "use Illuminate\\\\Mail\\\\Mailables\\\\Content;",
+      "use Illuminate\\\\Mail\\\\Mailables\\\\Envelope;",
+      "use Illuminate\\\\Queue\\\\SerializesModels;",
+      "",
+      "class ${1:PostPublished} extends Mailable",
+      "{",
+      "\tuse Queueable, SerializesModels;",
+      "",
+      "\tpublic function __construct(",
+      "\t\tpublic ${2:Post} \\$${3:post},",
+      "\t) {}",
+      "",
+      "\tpublic function envelope(): Envelope",
+      "\t{",
+      "\t\treturn new Envelope(subject: '${4:Subject}');",
+      "\t}",
+      "",
+      "\tpublic function content(): Content",
+      "\t{",
+      "\t\treturn new Content(markdown: '${5:mail.post-published}');",
+      "\t}$0",
+      "}"
+    ]
+  },
+  "Laravel policy": {
+    "prefix": "lpolicy",
+    "description": "Policy class",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Policies;",
+      "",
+      "use App\\\\Models\\\\${1:Post};",
+      "use App\\\\Models\\\\User;",
+      "",
+      "class ${1:Post}Policy",
+      "{",
+      "\tpublic function view(User \\$user, ${1:Post} \\$${2:post}): bool",
+      "\t{",
+      "\t\treturn $0;",
+      "\t}",
+      "",
+      "\tpublic function update(User \\$user, ${1:Post} \\$${2:post}): bool",
+      "\t{",
+      "\t\treturn \\$user->id === \\$${2:post}->user_id;",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel observer": {
+    "prefix": "lobserver",
+    "description": "Model observer (attach with #[ObservedBy] on the model)",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Observers;",
+      "",
+      "use App\\\\Models\\\\${1:Post};",
+      "",
+      "class ${1:Post}Observer",
+      "{",
+      "\tpublic function created(${1:Post} \\$${2:post}): void",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "",
+      "\tpublic function updated(${1:Post} \\$${2:post}): void",
+      "\t{",
+      "\t\t//",
+      "\t}",
+      "",
+      "\tpublic function deleted(${1:Post} \\$${2:post}): void",
+      "\t{",
+      "\t\t//",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel service provider": {
+    "prefix": "lprovider",
+    "description": "ServiceProvider with register() + boot()",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Providers;",
+      "",
+      "use Illuminate\\\\Support\\\\ServiceProvider;",
+      "",
+      "class ${1:AppServiceProvider} extends ServiceProvider",
+      "{",
+      "\tpublic function register(): void",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "",
+      "\tpublic function boot(): void",
+      "\t{",
+      "\t\t//",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel console command": {
+    "prefix": "lcmd",
+    "description": "Artisan command class",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Console\\\\Commands;",
+      "",
+      "use Illuminate\\\\Console\\\\Command;",
+      "",
+      "class ${1:SyncPosts} extends Command",
+      "{",
+      "\tprotected \\$signature = '${2:posts:sync} {--${3:force}}';",
+      "",
+      "\tprotected \\$description = '${4:Sync posts}';",
+      "",
+      "\tpublic function handle(): int",
+      "\t{",
+      "\t\t$0",
+      "",
+      "\t\treturn self::SUCCESS;",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel factory": {
+    "prefix": "lfactory",
+    "description": "Model factory with definition()",
+    "body": [
+      "<?php",
+      "",
+      "namespace Database\\\\Factories;",
+      "",
+      "use Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory;",
+      "",
+      "/**",
+      " * @extends Factory<\\\\App\\\\Models\\\\${1:Post}>",
+      " */",
+      "class ${1:Post}Factory extends Factory",
+      "{",
+      "\t/**",
+      "\t * @return array<string, mixed>",
+      "\t */",
+      "\tpublic function definition(): array",
+      "\t{",
+      "\t\treturn [",
+      "\t\t\t'${2:title}' => fake()->sentence(),$0",
+      "\t\t];",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel seeder": {
+    "prefix": "lseeder",
+    "description": "Database seeder",
+    "body": [
+      "<?php",
+      "",
+      "namespace Database\\\\Seeders;",
+      "",
+      "use Illuminate\\\\Database\\\\Seeder;",
+      "",
+      "class ${1:PostSeeder} extends Seeder",
+      "{",
+      "\tpublic function run(): void",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel validation rule": {
+    "prefix": "lrule",
+    "description": "Invokable ValidationRule object",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Rules;",
+      "",
+      "use Closure;",
+      "use Illuminate\\\\Contracts\\\\Validation\\\\ValidationRule;",
+      "",
+      "class ${1:Uppercase} implements ValidationRule",
+      "{",
+      "\tpublic function validate(string \\$attribute, mixed \\$value, Closure \\$fail): void",
+      "\t{",
+      "\t\tif (${2:false}) {",
+      "\t\t\t\\$fail('${3:The :attribute is invalid.}');",
+      "\t\t}$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel custom cast": {
+    "prefix": "lcast",
+    "description": "CastsAttributes custom cast",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Casts;",
+      "",
+      "use Illuminate\\\\Contracts\\\\Database\\\\Eloquent\\\\CastsAttributes;",
+      "use Illuminate\\\\Database\\\\Eloquent\\\\Model;",
+      "",
+      "/**",
+      " * @implements CastsAttributes<${1:mixed}, ${1:mixed}>",
+      " */",
+      "class ${2:Money} implements CastsAttributes",
+      "{",
+      "\tpublic function get(Model \\$model, string \\$key, mixed \\$value, array \\$attributes): mixed",
+      "\t{",
+      "\t\treturn $0;",
+      "\t}",
+      "",
+      "\tpublic function set(Model \\$model, string \\$key, mixed \\$value, array \\$attributes): mixed",
+      "\t{",
+      "\t\treturn \\$value;",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel enum": {
+    "prefix": "lenum",
+    "description": "Backed enum with label() helper",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Enums;",
+      "",
+      "enum ${1:PostStatus}: string",
+      "{",
+      "\tcase ${2:Draft} = '${3:draft}';",
+      "\tcase ${4:Published} = '${5:published}';",
+      "",
+      "\tpublic function label(): string",
+      "\t{",
+      "\t\treturn match (\\$this) {",
+      "\t\t\tself::${2:Draft} => '${2:Draft}',",
+      "\t\t\tself::${4:Published} => '${4:Published}',",
+      "\t\t};$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Laravel validate": {
+    "prefix": "lvalidate",
+    "description": "§request->validate([...])",
+    "body": [
+      "\\$${1:validated} = \\$request->validate([",
+      "\t'${2:title}' => ['required', 'string', 'max:255'],$0",
+      "]);"
+    ]
+  },
+  "Laravel transaction": {
+    "prefix": "ltx",
+    "description": "DB::transaction closure",
+    "body": [
+      "DB::transaction(function () use (${1:\\$model}) {",
+      "\t$0",
+      "});"
+    ]
+  },
+  "Laravel cache remember": {
+    "prefix": "lcache",
+    "description": "Cache::remember with a typed closure",
+    "body": [
+      "\\$${1:value} = Cache::remember('${2:key}', ${3:now()->addHour()}, function () {",
+      "\treturn $0;",
+      "});"
+    ]
+  },
+  "Laravel cache touch": {
+    "prefix": "lcachetouch",
+    "description": "Cache::touch() — extend a TTL without re-storing (Laravel 13)",
+    "body": [
+      "Cache::touch('${1:key}', ${2:now()->addHour()});$0"
+    ]
+  },
+  "Laravel query": {
+    "prefix": "lquery",
+    "description": "Eloquent query: eager load + conditional filter + paginate",
+    "body": [
+      "\\$${1:posts} = ${2:Post}::query()",
+      "\t->with(['${3:author}'])",
+      "\t->when(\\$request->string('${4:search}')->toString(), fn (Builder \\$query, string \\$${4:search}) => \\$query",
+      "\t\t->where('${5:title}', 'like', \"%{\\$${4:search}}%\"))",
+      "\t->latest()",
+      "\t->paginate(${6:15});$0"
+    ]
+  },
+  "Laravel AI prompt": {
+    "prefix": "laiprompt",
+    "description": "Laravel AI SDK — prompt an agent (Laravel 13)",
+    "body": [
+      "\\$${1:response} = ${2:SalesCoach}::make()->prompt('${3:Analyze this transcript...}');",
+      "",
+      "return (string) \\$${1:response};$0"
+    ]
+  },
+  "Laravel AI image": {
+    "prefix": "laiimage",
+    "description": "Laravel AI SDK — Image::of()->generate()",
+    "body": [
+      "\\$${1:image} = Image::of('${2:A donut on the kitchen counter}')->generate();",
+      "",
+      "\\$${3:rawContent} = (string) \\$${1:image};$0"
+    ]
+  },
+  "Laravel AI audio": {
+    "prefix": "laiaudio",
+    "description": "Laravel AI SDK — Audio::of()->generate()",
+    "body": [
+      "\\$${1:audio} = Audio::of('${2:I love coding with Laravel.}')->generate();",
+      "",
+      "\\$${3:rawContent} = (string) \\$${1:audio};$0"
+    ]
+  },
+  "Laravel AI embeddings": {
+    "prefix": "laiembed",
+    "description": "Laravel AI SDK — Str::of()->toEmbeddings()",
+    "body": [
+      "\\$${1:embeddings} = Str::of(\\$${2:text})->toEmbeddings();$0"
+    ]
+  },
+  "Laravel vector search": {
+    "prefix": "lvector",
+    "description": "whereVectorSimilarTo() semantic search (Laravel 13)",
+    "body": [
+      "\\$${1:documents} = DB::table('${2:documents}')",
+      "\t->whereVectorSimilarTo('${3:embedding}', \\$${4:query})",
+      "\t->limit(${5:10})",
+      "\t->get();$0"
+    ]
+  },
+  "Livewire component class": {
+    "prefix": "lwclass",
+    "description": "Livewire 4 class-based component (make:livewire --class)",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Livewire;",
+      "",
+      "use Livewire\\\\Component;",
+      "",
+      "class ${1:CreatePost} extends Component",
+      "{",
+      "\tpublic string \\$${2:title} = '';",
+      "",
+      "\tpublic function ${3:save}(): void",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "",
+      "\tpublic function render()",
+      "\t{",
+      "\t\treturn view('livewire.${4:create-post}');",
+      "\t}",
+      "}"
+    ]
+  },
+  "Livewire computed": {
+    "prefix": "lwcomputed",
+    "description": "#[Computed] memoised property — Livewire\\Attributes\\Computed",
+    "body": [
+      "#[Computed]",
+      "public function ${1:posts}()",
+      "{",
+      "\treturn $0;",
+      "}"
+    ]
+  },
+  "Livewire validate attribute": {
+    "prefix": "lwvalidate",
+    "description": "#[Validate] on a property — Livewire\\Attributes\\Validate",
+    "body": [
+      "#[Validate('${1:required|string|max:255}')]",
+      "public ${2:string} \\$${3:title} = '';$0"
+    ]
+  },
+  "Livewire event listener": {
+    "prefix": "lwon",
+    "description": "#[On] event listener — Livewire\\Attributes\\On",
+    "body": [
+      "#[On('${1:post-created}')]",
+      "public function ${2:refreshPosts}(${3:\\$id}): void",
+      "{",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Livewire dispatch": {
+    "prefix": "lwdispatch",
+    "description": "§this->dispatch() with named params / ->to()",
+    "body": [
+      "\\$this->dispatch('${1:post-created}', ${2:title}: \\$${3:title})${4:->to(component: ${5:Dashboard}::class)};$0"
+    ]
+  },
+  "Livewire URL property": {
+    "prefix": "lwurl",
+    "description": "#[Url] query-string bound property — Livewire\\Attributes\\Url",
+    "body": [
+      "#[Url(as: '${1:q}', history: true, keep: false)]",
+      "public string \\$${2:search} = '';$0"
+    ]
+  },
+  "Livewire locked property": {
+    "prefix": "lwlocked",
+    "description": "#[Locked] — reject client-side mutation",
+    "body": [
+      "#[Locked]",
+      "public ${1:int} \\$${2:id};$0"
+    ]
+  },
+  "Livewire form object": {
+    "prefix": "lwform",
+    "description": "Livewire Form object (extends Livewire\\Form)",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Livewire\\\\Forms;",
+      "",
+      "use Livewire\\\\Attributes\\\\Validate;",
+      "use Livewire\\\\Form;",
+      "",
+      "class ${1:PostForm} extends Form",
+      "{",
+      "\t#[Validate('required|string|max:255')]",
+      "\tpublic string \\$${2:title} = '';",
+      "",
+      "\tpublic function ${3:store}(): void",
+      "\t{",
+      "\t\t\\$this->validate();",
+      "",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ]
+  },
+  "Livewire pagination": {
+    "prefix": "lwpaginate",
+    "description": "WithPagination trait + paginated render",
+    "body": [
+      "use WithPagination;",
+      "",
+      "public function render()",
+      "{",
+      "\treturn view('livewire.${1:posts}', [",
+      "\t\t'${2:posts}' => ${3:Post}::query()->latest()->paginate(${4:10}),",
+      "\t]);$0",
+      "}"
+    ]
+  },
+  "Livewire file upload": {
+    "prefix": "lwupload",
+    "description": "WithFileUploads + TemporaryUploadedFile property",
+    "body": [
+      "use WithFileUploads;",
+      "",
+      "#[Validate('image|max:1024')]",
+      "public \\$${1:photo};",
+      "",
+      "public function ${2:save}(): void",
+      "{",
+      "\t\\$this->validate();",
+      "",
+      "\t\\$${3:path} = \\$this->${1:photo}->store(path: '${4:photos}');$0",
+      "}"
+    ]
+  },
+  "Livewire layout": {
+    "prefix": "lwlayout",
+    "description": "#[Layout] + #[Title] on a page component",
+    "body": [
+      "#[Layout('${1:components.layouts.app}')]",
+      "#[Title('${2:Posts}')]",
+      "$0"
+    ]
+  },
+  "Filament resource": {
+    "prefix": "filres",
+    "description": "Filament v5 resource skeleton (Schema + Table)",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Filament\\\\Resources;",
+      "",
+      "use App\\\\Filament\\\\Resources\\\\${1:Post}Resource\\\\Pages;",
+      "use App\\\\Models\\\\${1:Post};",
+      "use BackedEnum;",
+      "use Filament\\\\Actions\\\\BulkActionGroup;",
+      "use Filament\\\\Actions\\\\DeleteBulkAction;",
+      "use Filament\\\\Actions\\\\EditAction;",
+      "use Filament\\\\Resources\\\\Resource;",
+      "use Filament\\\\Schemas\\\\Schema;",
+      "use Filament\\\\Tables\\\\Columns\\\\TextColumn;",
+      "use Filament\\\\Tables\\\\Table;",
+      "",
+      "class ${1:Post}Resource extends Resource",
+      "{",
+      "\tprotected static ?string \\$model = ${1:Post}::class;",
+      "",
+      "\tprotected static string | BackedEnum | null \\$navigationIcon = '${2:heroicon-o-document-text}';",
+      "",
+      "\tpublic static function form(Schema \\$schema): Schema",
+      "\t{",
+      "\t\treturn \\$schema->components([",
+      "\t\t\t$0",
+      "\t\t]);",
+      "\t}",
+      "",
+      "\tpublic static function table(Table \\$table): Table",
+      "\t{",
+      "\t\treturn \\$table",
+      "\t\t\t->columns([",
+      "\t\t\t\tTextColumn::make('${3:title}')->searchable(),",
+      "\t\t\t])",
+      "\t\t\t->recordActions([",
+      "\t\t\t\tEditAction::make(),",
+      "\t\t\t])",
+      "\t\t\t->toolbarActions([",
+      "\t\t\t\tBulkActionGroup::make([",
+      "\t\t\t\t\tDeleteBulkAction::make(),",
+      "\t\t\t\t]),",
+      "\t\t\t]);",
+      "\t}",
+      "",
+      "\tpublic static function getPages(): array",
+      "\t{",
+      "\t\treturn [",
+      "\t\t\t'index' => Pages\\\\List${1:Post}s::route('/'),",
+      "\t\t\t'create' => Pages\\\\Create${1:Post}::route('/create'),",
+      "\t\t\t'edit' => Pages\\\\Edit${1:Post}::route('/{record}/edit'),",
+      "\t\t];",
+      "\t}",
+      "}"
+    ]
+  },
+  "Filament form schema": {
+    "prefix": "filform",
+    "description": "Filament v5 form(Schema §schema): Schema",
+    "body": [
+      "public static function form(Schema \\$schema): Schema",
+      "{",
+      "\treturn \\$schema->components([",
+      "\t\t$0",
+      "\t]);",
+      "}"
+    ]
+  },
+  "Filament table": {
+    "prefix": "filtable",
+    "description": "Filament v5 table() with columns, filters, actions",
+    "body": [
+      "public static function table(Table \\$table): Table",
+      "{",
+      "\treturn \\$table",
+      "\t\t->columns([",
+      "\t\t\tTextColumn::make('${1:title}')->searchable()->sortable(),$0",
+      "\t\t])",
+      "\t\t->filters([",
+      "\t\t\t//",
+      "\t\t])",
+      "\t\t->recordActions([",
+      "\t\t\tEditAction::make(),",
+      "\t\t])",
+      "\t\t->toolbarActions([",
+      "\t\t\tBulkActionGroup::make([",
+      "\t\t\t\tDeleteBulkAction::make(),",
+      "\t\t\t]),",
+      "\t\t]);",
+      "}"
+    ]
+  },
+  "Filament infolist": {
+    "prefix": "filinfolist",
+    "description": "Filament v5 infolist(Schema §schema): Schema",
+    "body": [
+      "public static function infolist(Schema \\$schema): Schema",
+      "{",
+      "\treturn \\$schema->components([",
+      "\t\tTextEntry::make('${1:title}'),$0",
+      "\t]);",
+      "}"
+    ]
+  },
+  "Filament fields": {
+    "prefix": "filfields",
+    "description": "Common Filament form fields",
+    "body": [
+      "TextInput::make('${1:title}')",
+      "\t->required()",
+      "\t->maxLength(255),",
+      "Textarea::make('${2:body}')",
+      "\t->rows(5)",
+      "\t->columnSpanFull(),",
+      "Select::make('${3:status}')",
+      "\t->options(${4:PostStatus}::class)",
+      "\t->required(),",
+      "DatePicker::make('${5:published_at}'),",
+      "Toggle::make('${6:is_featured}'),$0"
+    ]
+  },
+  "Filament section": {
+    "prefix": "filsection",
+    "description": "Section layout component (Filament\\Schemas\\Components\\Section)",
+    "body": [
+      "Section::make('${1:Details}')",
+      "\t->description('${2:}')",
+      "\t->columns(${3:2})",
+      "\t->schema([",
+      "\t\t$0",
+      "\t]),"
+    ]
+  },
+  "Filament column": {
+    "prefix": "filcol",
+    "description": "TextColumn with the common modifiers",
+    "body": [
+      "TextColumn::make('${1:title}')",
+      "\t->label('${2:Title}')",
+      "\t->searchable()",
+      "\t->sortable()",
+      "\t->toggleable(),$0"
+    ]
+  },
+  "Filament filter": {
+    "prefix": "filfilter",
+    "description": "SelectFilter / custom query Filter",
+    "body": [
+      "SelectFilter::make('${1:status}')",
+      "\t->options(${2:PostStatus}::class)",
+      "\t->multiple(),$0"
+    ]
+  },
+  "Filament action": {
+    "prefix": "filaction",
+    "description": "Filament v5 action (Filament\\Actions\\Action)",
+    "body": [
+      "Action::make('${1:publish}')",
+      "\t->label('${2:Publish}')",
+      "\t->icon('${3:heroicon-o-paper-airplane}')",
+      "\t->requiresConfirmation()",
+      "\t->action(function (${4:Post} \\$record): void {",
+      "\t\t$0",
+      "\t}),"
+    ]
+  },
+  "Filament stats widget": {
+    "prefix": "filwidget",
+    "description": "StatsOverviewWidget with Stat entries",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Filament\\\\Widgets;",
+      "",
+      "use Filament\\\\Widgets\\\\StatsOverviewWidget;",
+      "use Filament\\\\Widgets\\\\StatsOverviewWidget\\\\Stat;",
+      "",
+      "class ${1:PostStats} extends StatsOverviewWidget",
+      "{",
+      "\tprotected function getStats(): array",
+      "\t{",
+      "\t\treturn [",
+      "\t\t\tStat::make('${2:Posts}', ${3:Post}::count())",
+      "\t\t\t\t->description('${4:Total}')",
+      "\t\t\t\t->color('${5|primary,success,warning,danger,gray|}'),$0",
+      "\t\t];",
+      "\t}",
+      "}"
+    ]
+  },
+  "Filament page": {
+    "prefix": "filpage",
+    "description": "Custom Filament page",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Filament\\\\Pages;",
+      "",
+      "use BackedEnum;",
+      "use Filament\\\\Pages\\\\Page;",
+      "",
+      "class ${1:Settings} extends Page",
+      "{",
+      "\tprotected static string | BackedEnum | null \\$navigationIcon = '${2:heroicon-o-cog-6-tooth}';",
+      "",
+      "\tprotected string \\$view = 'filament.pages.${3:settings}';$0",
+      "}"
+    ]
+  },
+  "Filament relation manager": {
+    "prefix": "filrel",
+    "description": "Filament v5 relation manager",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\\\Filament\\\\Resources\\\\${1:Post}Resource\\\\RelationManagers;",
+      "",
+      "use Filament\\\\Actions\\\\CreateAction;",
+      "use Filament\\\\Actions\\\\DeleteAction;",
+      "use Filament\\\\Actions\\\\EditAction;",
+      "use Filament\\\\Resources\\\\RelationManagers\\\\RelationManager;",
+      "use Filament\\\\Schemas\\\\Schema;",
+      "use Filament\\\\Tables\\\\Columns\\\\TextColumn;",
+      "use Filament\\\\Tables\\\\Table;",
+      "",
+      "class ${2:Comments}RelationManager extends RelationManager",
+      "{",
+      "\tprotected static string \\$relationship = '${3:comments}';",
+      "",
+      "\tpublic function form(Schema \\$schema): Schema",
+      "\t{",
+      "\t\treturn \\$schema->components([",
+      "\t\t\t$0",
+      "\t\t]);",
+      "\t}",
+      "",
+      "\tpublic function table(Table \\$table): Table",
+      "\t{",
+      "\t\treturn \\$table",
+      "\t\t\t->columns([",
+      "\t\t\t\tTextColumn::make('${4:body}'),",
+      "\t\t\t])",
+      "\t\t\t->headerActions([",
+      "\t\t\t\tCreateAction::make(),",
+      "\t\t\t])",
+      "\t\t\t->recordActions([",
+      "\t\t\t\tEditAction::make(),",
+      "\t\t\t\tDeleteAction::make(),",
+      "\t\t\t]);",
+      "\t}",
+      "}"
+    ]
+  }
+}

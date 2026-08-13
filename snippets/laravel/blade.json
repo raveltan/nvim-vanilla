@@ -1,0 +1,233 @@
+{
+  "Livewire single-file component": {
+    "prefix": "lwsfc",
+    "description": "Livewire 4 single-file component (resources/views/components/⚡name.blade.php)",
+    "body": [
+      "<?php",
+      "",
+      "use Livewire\\\\Component;",
+      "",
+      "new class extends Component",
+      "{",
+      "\tpublic ${1:string} \\$${2:title} = '';",
+      "",
+      "\tpublic function ${3:save}(): void",
+      "\t{",
+      "\t\t$0",
+      "\t}",
+      "}; ?>",
+      "",
+      "<div>",
+      "\t<input wire:model=\"${2:title}\" type=\"text\">",
+      "",
+      "\t<button wire:click=\"${3:save}\">${4:Save}</button>",
+      "</div>"
+    ]
+  },
+  "Livewire island": {
+    "prefix": "island",
+    "description": "@island — isolated, independently updating region",
+    "body": [
+      "@island",
+      "\t$0",
+      "@endisland"
+    ]
+  },
+  "Livewire named island": {
+    "prefix": "islandname",
+    "description": "@island(name:) — targetable by wire:island",
+    "body": [
+      "@island(name: '${1:revenue}')",
+      "\t$0",
+      "@endisland"
+    ]
+  },
+  "Livewire lazy island": {
+    "prefix": "islandlazy",
+    "description": "@island(lazy: true) with placeholder — loads when scrolled into view",
+    "body": [
+      "@island(lazy: true)",
+      "\t@placeholder",
+      "\t\t<div>${1:Loading...}</div>",
+      "\t@endplaceholder",
+      "",
+      "\t$0",
+      "@endisland"
+    ]
+  },
+  "Livewire deferred island": {
+    "prefix": "islanddefer",
+    "description": "@island(defer: true) — loads right after page load",
+    "body": [
+      "@island(defer: true)",
+      "\t$0",
+      "@endisland"
+    ]
+  },
+  "Livewire placeholder": {
+    "prefix": "placeholder",
+    "description": "@placeholder loading state",
+    "body": [
+      "@placeholder",
+      "\t<div>${1:Loading...}</div>",
+      "@endplaceholder$0"
+    ]
+  },
+  "Livewire island refresh": {
+    "prefix": "wisland",
+    "description": "wire:island — refresh/append into one island only",
+    "body": [
+      "<button wire:click=\"${1:\\$refresh}\" wire:island${2|,.append,.prepend|}=\"${3:revenue}\">${4:Refresh}</button>$0"
+    ]
+  },
+  "Livewire slot": {
+    "prefix": "lwslot",
+    "description": "Livewire 4 slot content passed to a component",
+    "body": [
+      "<livewire:${1:card} :\\$${2:post}>",
+      "\t$0",
+      "</livewire:${1:card}>"
+    ]
+  },
+  "Livewire attributes": {
+    "prefix": "lwattrs",
+    "description": "Forwarded attributes on the component root",
+    "body": [
+      "<div {{ \\$attributes->merge(['class' => '${1:}']) }}>",
+      "\t$0",
+      "</div>"
+    ]
+  },
+  "wire:model": {
+    "prefix": "wmodel",
+    "description": "wire:model with live/blur/debounce modifiers",
+    "body": [
+      "wire:model${1|.live,.blur,.change,.live.debounce.500ms,|}=\"${2:title}\"$0"
+    ]
+  },
+  "wire:click": {
+    "prefix": "wclick",
+    "description": "wire:click action",
+    "body": [
+      "wire:click=\"${1:save}\"$0"
+    ]
+  },
+  "wire:submit form": {
+    "prefix": "wsubmit",
+    "description": "Form posting through a Livewire action",
+    "body": [
+      "<form wire:submit=\"${1:save}\">",
+      "\t$0",
+      "",
+      "\t<button type=\"submit\">${2:Save}</button>",
+      "</form>"
+    ]
+  },
+  "wire:loading": {
+    "prefix": "wloading",
+    "description": "wire:loading state (optionally scoped with target)",
+    "body": [
+      "<div wire:loading${1|,.delay,.remove|} wire:target=\"${2:save}\">${3:Saving...}</div>$0"
+    ]
+  },
+  "wire:navigate": {
+    "prefix": "wnavigate",
+    "description": "SPA-style navigation link",
+    "body": [
+      "<a href=\"{{ route('${1:posts.index}') }}\" wire:navigate${2|,.hover|}>${3:Posts}</a>$0"
+    ]
+  },
+  "wire:poll": {
+    "prefix": "wpoll",
+    "description": "Poll the component on an interval",
+    "body": [
+      "wire:poll${1|,.5s,.keep-alive,.visible|}=\"${2:\\$refresh}\"$0"
+    ]
+  },
+  "wire:confirm": {
+    "prefix": "wconfirm",
+    "description": "Native confirm before an action",
+    "body": [
+      "wire:click=\"${1:delete}\" wire:confirm=\"${2:Are you sure?}\"$0"
+    ]
+  },
+  "wire:key": {
+    "prefix": "wkey",
+    "description": "Stable key inside a loop",
+    "body": [
+      "wire:key=\"${1:\\$post->id}\"$0"
+    ]
+  },
+  "wire:ignore": {
+    "prefix": "wignore",
+    "description": "Leave a subtree to a third-party JS library",
+    "body": [
+      "<div wire:ignore${1|,.self|}>",
+      "\t$0",
+      "</div>"
+    ]
+  },
+  "wire:dirty": {
+    "prefix": "wdirty",
+    "description": "Unsaved-changes indicator",
+    "body": [
+      "<span wire:dirty wire:target=\"${1:title}\">${2:Unsaved changes}</span>$0"
+    ]
+  },
+  "wire:transition": {
+    "prefix": "wtransition",
+    "description": "Transition an element in/out on update",
+    "body": [
+      "wire:transition${1|,.opacity,.scale,.duration.300ms|}$0"
+    ]
+  },
+  "wire:show": {
+    "prefix": "wshow",
+    "description": "Toggle visibility with CSS (no DOM removal)",
+    "body": [
+      "wire:show=\"${1:\\$open}\"$0"
+    ]
+  },
+  "wire:text": {
+    "prefix": "wtext",
+    "description": "Bind element text to a property",
+    "body": [
+      "wire:text=\"${1:title}\"$0"
+    ]
+  },
+  "wire:bind": {
+    "prefix": "wbind",
+    "description": "Reactively bind an HTML attribute",
+    "body": [
+      "wire:bind:${1:class}=\"${2:\\$classes}\"$0"
+    ]
+  },
+  "wire:ref": {
+    "prefix": "wref",
+    "description": "Name an element for later reference",
+    "body": [
+      "wire:ref=\"${1:input}\"$0"
+    ]
+  },
+  "wire:sort list": {
+    "prefix": "wsort",
+    "description": "Drag-and-drop sortable list",
+    "body": [
+      "<ul wire:sort=\"${1:reorder}\">",
+      "\t@foreach (\\$${2:items} as \\$${3:item})",
+      "\t\t<li wire:sort:item=\"{{ \\$${3:item}->id }}\" wire:key=\"${3:item}-{{ \\$${3:item}->id }}\">",
+      "\t\t\t<span wire:sort:handle>::</span>",
+      "\t\t\t$0",
+      "\t\t</li>",
+      "\t@endforeach",
+      "</ul>"
+    ]
+  },
+  "wire:stream": {
+    "prefix": "wstream",
+    "description": "Streamed output target",
+    "body": [
+      "<div wire:stream=\"${1:answer}\">$0</div>"
+    ]
+  }
+}

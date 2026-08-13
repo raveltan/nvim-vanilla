@@ -1,0 +1,362 @@
+{
+  "Pest it": {
+    "prefix": "it",
+    "description": "it() test closure",
+    "body": [
+      "it('${1:does something}', function () {",
+      "\t$0",
+      "});"
+    ]
+  },
+  "Pest test": {
+    "prefix": "test",
+    "description": "test() closure",
+    "body": [
+      "test('${1:name}', function () {",
+      "\t$0",
+      "});"
+    ]
+  },
+  "Pest describe": {
+    "prefix": "describe",
+    "description": "describe() block",
+    "body": [
+      "describe('${1:subject}', function () {",
+      "\t$0",
+      "});"
+    ]
+  },
+  "Pest beforeEach": {
+    "prefix": "beforeEach",
+    "description": "beforeEach hook",
+    "body": [
+      "beforeEach(function () {",
+      "\t$0",
+      "});"
+    ]
+  },
+  "Pest afterEach": {
+    "prefix": "afterEach",
+    "description": "afterEach hook",
+    "body": [
+      "afterEach(function () {",
+      "\t$0",
+      "});"
+    ]
+  },
+  "Pest beforeAll": {
+    "prefix": "beforeAll",
+    "description": "beforeAll hook",
+    "body": [
+      "beforeAll(function () {",
+      "\t$0",
+      "});"
+    ]
+  },
+  "Pest uses": {
+    "prefix": "uses",
+    "description": "uses() — bind a TestCase/trait to a directory (tests/Pest.php)",
+    "body": [
+      "uses(${1:Tests\\\\TestCase}::class)->in('${2:Feature}');",
+      "$0"
+    ]
+  },
+  "Pest expect": {
+    "prefix": "expect",
+    "description": "expect() assertion",
+    "body": [
+      "expect(${1:value})->${2:toBe}(${3:expected});",
+      "$0"
+    ]
+  },
+  "Pest expect chain": {
+    "prefix": "expectc",
+    "description": "Chained expectation",
+    "body": [
+      "expect(${1:value})",
+      "\t->${2:toBeInstanceOf}(${3:Model}::class)",
+      "\t->${4:and}(${5})->${6:toBeTrue}();",
+      "$0"
+    ]
+  },
+  "Pest it with dataset": {
+    "prefix": "itwith",
+    "description": "it() driven by an inline dataset",
+    "body": [
+      "it('${1:handles each case}', function (${2:string} \\$${3:input}) {",
+      "\t$0",
+      "})->with([",
+      "\t'${4:case}' => ['${5:value}'],",
+      "]);"
+    ]
+  },
+  "Pest dataset": {
+    "prefix": "dataset",
+    "description": "Named dataset (tests/Datasets)",
+    "body": [
+      "dataset('${1:name}', [",
+      "\t'${2:case}' => ['${3:value}'],",
+      "]);",
+      "$0"
+    ]
+  },
+  "Pest throws": {
+    "prefix": "throws",
+    "description": "Expect the test body to throw",
+    "body": [
+      "it('${1:rejects bad input}', function () {",
+      "\t$0",
+      "})->throws(${2:InvalidArgumentException}::class);"
+    ]
+  },
+  "Pest todo": {
+    "prefix": "todo",
+    "description": "Pending test",
+    "body": [
+      "it('${1:name}')->todo();",
+      "$0"
+    ]
+  },
+  "Pest skip": {
+    "prefix": "skip",
+    "description": "Skip with a reason",
+    "body": [
+      "->skip('${1:reason}');$0"
+    ]
+  },
+  "Pest group": {
+    "prefix": "group",
+    "description": "Tag the test into a group",
+    "body": [
+      "->group('${1:name}');$0"
+    ]
+  },
+  "Pest covers": {
+    "prefix": "covers",
+    "description": "Restrict coverage to a class",
+    "body": [
+      "covers(${1:App\\\\Models\\\\User}::class);",
+      "$0"
+    ]
+  },
+  "Pest Laravel get": {
+    "prefix": "phttp",
+    "description": "HTTP request assertion (pest-plugin-laravel)",
+    "body": [
+      "${1|get,post,put,patch,delete|}('${2:/}')",
+      "\t->assertOk();",
+      "$0"
+    ]
+  },
+  "Pest Laravel actingAs": {
+    "prefix": "pacting",
+    "description": "Authenticated request",
+    "body": [
+      "actingAs(\\$${1:user} = ${2:User}::factory()->create())",
+      "\t->get('${3:/dashboard}')",
+      "\t->assertOk();",
+      "$0"
+    ]
+  },
+  "Pest Laravel database assertion": {
+    "prefix": "pdb",
+    "description": "assertDatabaseHas",
+    "body": [
+      "\\$this->assertDatabaseHas('${1:users}', [",
+      "\t'${2:email}' => '${3:value}',",
+      "]);",
+      "$0"
+    ]
+  },
+  "Pest Laravel refresh database": {
+    "prefix": "prefresh",
+    "description": "uses(RefreshDatabase::class)",
+    "body": [
+      "uses(Illuminate\\\\Foundation\\\\Testing\\\\RefreshDatabase::class);",
+      "$0"
+    ]
+  },
+  "Pest mock": {
+    "prefix": "pmock",
+    "description": "Mock a container binding",
+    "body": [
+      "\\$${1:service} = mock(${2:Service}::class);",
+      "\\$${1:service}->shouldReceive('${3:method}')",
+      "\t->once()",
+      "\t->andReturn(${4:null});",
+      "$0"
+    ]
+  },
+  "Pest spy": {
+    "prefix": "pspy",
+    "description": "Spy on a container binding",
+    "body": [
+      "\\$${1:spy} = spy(${2:Service}::class);",
+      "$0"
+    ]
+  },
+  "Pest browser visit": {
+    "prefix": "pvisit",
+    "description": "Browser test — visit() + assertions (pest-plugin-browser)",
+    "body": [
+      "it('${1:renders the page}', function () {",
+      "\t\\$page = visit('${2:/}');",
+      "",
+      "\t\\$page->assertSee('${3:Welcome}')",
+      "\t\t->assertNoJavaScriptErrors();$0",
+      "});"
+    ]
+  },
+  "Pest browser flow": {
+    "prefix": "pbrowser",
+    "description": "Browser test — full interaction flow",
+    "body": [
+      "it('${1:signs the user in}', function () {",
+      "\t\\$user = User::factory()->create([",
+      "\t\t'email' => '${2:test@example.com}',",
+      "\t]);",
+      "",
+      "\t\\$page = visit('${3:/login}');",
+      "",
+      "\t\\$page->fill('email', \\$user->email)",
+      "\t\t->fill('password', '${4:password}')",
+      "\t\t->click('${5:Log in}')",
+      "\t\t->assertPathIs('${6:/dashboard}')",
+      "\t\t->assertSee('${7:Dashboard}');",
+      "",
+      "\t\\$this->assertAuthenticatedAs(\\$user);$0",
+      "});"
+    ]
+  },
+  "Pest browser smoke": {
+    "prefix": "psmoke",
+    "description": "assertNoSmoke() — no console logs, JS errors or 404s",
+    "body": [
+      "it('${1:has no smoke}', function () {",
+      "\tvisit(['${2:/}', '${3:/about}'])->assertNoSmoke();$0",
+      "});"
+    ]
+  },
+  "Pest accessibility": {
+    "prefix": "pa11y",
+    "description": "assertNoAccessibilityIssues()",
+    "body": [
+      "it('${1:is accessible}', function () {",
+      "\tvisit('${2:/}')->assertNoAccessibilityIssues();$0",
+      "});"
+    ]
+  },
+  "Pest browser device": {
+    "prefix": "pdevice",
+    "description": "Device / colour-scheme scoped browser test",
+    "body": [
+      "\\$page = visit('${1:/}')->on()->${2|mobile,tablet,desktop,iPhone14Pro,macbook14|}()${3:->inDarkMode()};$0"
+    ]
+  },
+  "Pest screenshot": {
+    "prefix": "pshot",
+    "description": "Screenshot / debug helpers",
+    "body": [
+      "\\$page->screenshot(${1:fullPage: true});$0"
+    ]
+  },
+  "Pest eval": {
+    "prefix": "peval",
+    "description": "Eval an agent's output (pest-plugin-evals, run with --evals)",
+    "body": [
+      "it('${1:answers correctly}', function () {",
+      "\texpect(${2:CapitalCityAgent}::class)",
+      "\t\t->prompt('${3:What is the capital of France?}')",
+      "\t\t->toContain('${4:Paris}')",
+      "\t\t->toBeRelevant();$0",
+      "});"
+    ]
+  },
+  "Pest Livewire test": {
+    "prefix": "plw",
+    "description": "Livewire::test() component assertion",
+    "body": [
+      "it('${1:saves the post}', function () {",
+      "\tLivewire::test(${2:CreatePost}::class)",
+      "\t\t->set('${3:title}', '${4:Hello}')",
+      "\t\t->call('${5:save}')",
+      "\t\t->assertHasNoErrors()",
+      "\t\t->assertDispatched('${6:post-created}');$0",
+      "});"
+    ]
+  },
+  "Pest JSON assertion": {
+    "prefix": "pjson",
+    "description": "JSON endpoint assertion",
+    "body": [
+      "it('${1:returns the payload}', function () {",
+      "\t\\$this->postJson('${2:/api/posts}', [",
+      "\t\t'${3:title}' => '${4:Hello}',",
+      "\t])",
+      "\t\t->assertCreated()",
+      "\t\t->assertJsonPath('data.${3:title}', '${4:Hello}');$0",
+      "});"
+    ]
+  },
+  "Pest validation errors": {
+    "prefix": "pinvalid",
+    "description": "Assert validation errors",
+    "body": [
+      "it('${1:rejects invalid input}', function () {",
+      "\t\\$this->post('${2:/posts}', [])",
+      "\t\t->assertSessionHasErrors(['${3:title}']);$0",
+      "});"
+    ]
+  },
+  "Pest queue fake": {
+    "prefix": "pqueue",
+    "description": "Queue::fake() + assertPushed",
+    "body": [
+      "Queue::fake();",
+      "",
+      "$0",
+      "",
+      "Queue::assertPushed(${1:ProcessPodcast}::class);"
+    ]
+  },
+  "Pest mail fake": {
+    "prefix": "pmail",
+    "description": "Mail::fake() + assertSent",
+    "body": [
+      "Mail::fake();",
+      "",
+      "$0",
+      "",
+      "Mail::assertSent(${1:PostPublished}::class, fn (\\$mail) => \\$mail->hasTo(\\$${2:user}->email));"
+    ]
+  },
+  "Pest event fake": {
+    "prefix": "pevent",
+    "description": "Event::fake() + assertDispatched",
+    "body": [
+      "Event::fake();",
+      "",
+      "$0",
+      "",
+      "Event::assertDispatched(${1:PostPublished}::class);"
+    ]
+  },
+  "Pest storage fake": {
+    "prefix": "pstorage",
+    "description": "Storage::fake() + assertExists",
+    "body": [
+      "Storage::fake('${1:public}');",
+      "",
+      "$0",
+      "",
+      "Storage::disk('${1:public}')->assertExists('${2:photos/photo.jpg}');"
+    ]
+  },
+  "Pest time travel": {
+    "prefix": "ptravel",
+    "description": "travelTo / freezeTime",
+    "body": [
+      "\\$this->${1|freezeTime,travelTo,travel|}(${2:now()->addDay()});$0"
+    ]
+  }
+}
