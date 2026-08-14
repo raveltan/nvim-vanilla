@@ -979,3 +979,20 @@ pack.setup({
     end,
   },
 })
+
+-- fzf-lua only loads off a picker key or :FzfLua, so its register_ui_select()
+-- has not run yet the first time something calls vim.ui.select -- code actions,
+-- core/case.lua, the overseer task pickers -- and that call would get the
+-- builtin numbered prompt. Pull fzf-lua in on demand instead: register_ui_select
+-- overwrites vim.ui.select during config, so after the load the global is the
+-- fuzzy one and this shim hands the arguments straight to it.
+do
+  local builtin = vim.ui.select
+  local shim
+  shim = function(items, opts, on_choice)
+    pack.load("fzf-lua")
+    local impl = vim.ui.select ~= shim and vim.ui.select or builtin
+    return impl(items, opts, on_choice)
+  end
+  vim.ui.select = shim
+end
