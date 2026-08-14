@@ -167,10 +167,20 @@ map("n", "<leader>gg", function()
     return
   end
   vim.cmd("tabnew")
+  local tab = vim.api.nvim_get_current_tabpage()
   vim.fn.jobstart({ "lazygit" }, {
     term = true,
     cwd = vim.uv.cwd(),
-    on_exit = function() vim.schedule(function() pcall(vim.cmd, "tabclose") end) end,
+    -- Close this tab, not whatever tab happens to be current: the nvim-remote
+    -- edit preset quits lazygit and opens the file in a new tab, so that tab is
+    -- usually already focused by the time the process exits.
+    on_exit = function()
+      vim.schedule(function()
+        if not vim.api.nvim_tabpage_is_valid(tab) then return end
+        if #vim.api.nvim_list_tabpages() < 2 then return end
+        pcall(vim.cmd, vim.api.nvim_tabpage_get_number(tab) .. "tabclose")
+      end)
+    end,
   })
   vim.cmd.startinsert()
 end, { desc = "Lazygit" })
