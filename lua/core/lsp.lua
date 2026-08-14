@@ -282,29 +282,47 @@ local function ts_keymaps()
   })
 end
 
-diagnostics()
-configure()
+-- Deferred to the first buffer: reaching for vim.lsp at all loads its whole
+-- module tree (2.9ms measured), and vim.lsp.enable() then resolves every server
+-- by reading nvim-lspconfig's lsp/<name>.lua off the runtimepath. enable()
+-- replays FileType over open buffers, so the file that triggered this still
+-- gets its server.
+local function start()
+  vim.lsp.log.set_level(vim.log.levels.OFF)
+  diagnostics()
+  configure()
+
+  local enabled = {}
+  for name, bin in pairs(SERVERS) do
+    if vim.fn.executable(bin) == 1 then
+      enabled[#enabled + 1] = name
+    end
+  end
+  table.sort(enabled)
+
+  if vim.g.gaf then
+    -- tailwindcss never starts in the monolith and its scan is expensive.
+    enabled = vim.tbl_filter(function(s) return s ~= "tailwindcss" end, enabled)
+    require("gaf.lsp").apply()
+  end
+
+  vim.lsp.enable(enabled)
+
+  vim.api.nvim_create_autocmd("LspAttach", {
+    group = vim.api.nvim_create_augroup("lsp_attach", { clear = true }),
+    callback = on_attach,
+  })
+end
+
 ts_keymaps()
 
-local enabled = {}
-for name, bin in pairs(SERVERS) do
-  if vim.fn.executable(bin) == 1 then
-    enabled[#enabled + 1] = name
-  end
-end
-table.sort(enabled)
-
-if vim.g.gaf then
-  -- tailwindcss never starts in the monolith and its scan is expensive.
-  enabled = vim.tbl_filter(function(s) return s ~= "tailwindcss" end, enabled)
-  require("gaf.lsp").apply()
-end
-
-vim.lsp.enable(enabled)
-
-vim.api.nvim_create_autocmd("LspAttach", {
-  group = vim.api.nvim_create_augroup("lsp_attach", { clear = true }),
-  callback = on_attach,
+-- The same trigger set nvim-lspconfig uses in core/plugins.lua, and that spec
+-- registers first, so its lsp/ definitions are on the runtimepath before this
+-- runs. One autocmd with `once` is deleted after whichever event lands first.
+vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile", "FileType" }, {
+  group = vim.api.nvim_create_augroup("lsp_start", { clear = true }),
+  once = true,
+  callback = start,
 })
 
 vim.api.nvim_create_user_command("LspServers", function()

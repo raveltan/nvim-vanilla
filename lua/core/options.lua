@@ -94,8 +94,6 @@ if vim.fn.executable("rg") == 1 then
   opt.grepprg = "rg --vimgrep --smart-case --hidden --glob=!.git"
 end
 
-vim.lsp.log.set_level(vim.log.levels.OFF)
-
 -- No remote-plugin hosts in use, so this skips provider probing and the
 -- checkhealth noise.
 vim.g.loaded_node_provider = 0

@@ -1,6 +1,8 @@
 -- Native statusline. 'laststatus' is 3, so one bar renders per screen and it is
 -- rebuilt on every redraw, which is what the caching below is for.
 
+local harpoon_list = require("core.harpoon").list
+
 local M = {}
 
 -- moonfly palette, so the accents match the theme without pulling its module.
@@ -122,9 +124,7 @@ local function dirname()
 end
 
 local function harpoon()
-  local ok, hp = pcall(require, "core.harpoon")
-  if not ok then return "" end
-  local list = hp.list()
+  local list = harpoon_list()
   if #list == 0 then return "" end
   local cur = vim.api.nvim_buf_get_name(0)
   local out = {}
@@ -202,7 +202,9 @@ function M.setup()
   vim.o.statusline = "%!v:lua.require'core.statusline'.render()"
 
   local g = vim.api.nvim_create_augroup("statusline_winbar", { clear = true })
-  vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "FileType", "BufWritePost" }, {
+  -- The bar itself is a %! expression, so only the winbar needs re-applying, and
+  -- only when the window, its buffer or that buffer's filetype changes.
+  vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "FileType" }, {
     group = g,
     callback = function() apply_winbar(vim.api.nvim_get_current_win()) end,
   })

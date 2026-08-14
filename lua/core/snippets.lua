@@ -93,7 +93,7 @@ end
 
 local function reset()
   packs, composed, stacks = {}, {}, {}
-  pcall(function() require("core.snippet_source").reset() end)
+  require("core.snippet_source").reset()
 end
 
 function M.setup()

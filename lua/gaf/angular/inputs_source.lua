@@ -3,8 +3,8 @@
 -- element), a component's @Input/@Output names once the cursor is inside a
 -- `<app-foo …>` start tag, and the values those inputs accept. Resolution and
 -- caching live in gaf.angular.completion / .edits; this file only shapes the
--- results into blink items. Wired in lua/plugins/lsp.lua as provider
--- `angular_inputs`, prepended to the typescript source list.
+-- results into blink items. Wired in lua/core/completion.lua as provider
+-- `angular`, prepended to the typescript source list.
 --
 -- Accepting a tag also makes it resolve. A standalone consumer takes an import
 -- statement and an `imports: [ ]` entry in its own file, attached by resolve as
@@ -19,6 +19,7 @@
 -- components.
 local completion = require("gaf.angular.completion")
 local component = require("gaf.angular.component")
+local context = require("gaf.angular.context")
 local edits = require("gaf.angular.edits")
 local search = require("gaf.angular.search")
 
@@ -347,6 +348,13 @@ end
 
 function M:get_completions(ctx, callback)
   callback = vim.schedule_wrap(callback)
+
+  -- All four modes read an inline template, and in a .ts file the cursor is
+  -- usually not in one. Answering here is what keeps the per-keystroke cost of
+  -- this source in ordinary TypeScript down to a single treesitter node walk.
+  if not context.in_template(vim.api.nvim_get_current_buf()) then
+    return callback(response({}))
+  end
 
   -- 0. Component-TAG completion: cursor in `<fl-bu▏` inside an inline template.
   -- Tried first because at that point there is no attribute or value context for

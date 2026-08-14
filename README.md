@@ -1,14 +1,22 @@
 # nvim-vanilla
 
-Native-first Neovim 0.12. **30 plugins** (24 direct + neotest's six-piece stack),
-**8,400 lines** of Lua, no plugin manager. About 5,500 of those lines are ported
-carry-overs (`gaf/` 4,020, `tagmatch` 310, `artisan` 370, and the
+Native-first Neovim 0.12. **34 plugins** (36 under GAF, which adds redash and
+csvview), six of them neotest's adapter stack, **8,700 lines** of Lua, no plugin
+manager. About 5,500 of those lines are ported carry-overs (`gaf/` 4,040,
+`tagmatch` 310, `artisan` 370, and the
 `rename`/`scss`/`blame`/`line_history`/`wordsearch`/`foldtext` helpers 830) rather
-than new config. The config itself is the remaining ~2,900.
+than new config. The config itself is the remaining ~3,150.
 
-Startup is about 0.7x the 102-plugin config it replaces, 16.4ms against 23.9ms
-measured back to back. Absolute figures move with machine load, so compare the
-two in the same run rather than trusting either number alone.
+Startup is about 0.55x the 102-plugin config it replaces, 13.0ms against 23.6ms,
+medians of nine interleaved `--startuptime` runs. Absolute figures move with
+machine load, so compare the two in the same run rather than trusting either
+number alone.
+
+Nothing that only a buffer needs runs before there is one: `vim.lsp` and every
+server config are wired from a one-shot `BufReadPre`/`BufNewFile`/`FileType`
+autocmd (`lua/core/lsp.lua`), and the Angular module is required by the keymap
+that uses it rather than by `setup()`. That is worth 3ms of the plain profile
+and 5.5ms of GAF, measured A/B on the same machine.
 
 Statusline redraw 2.7µs. First press of the heaviest lazy key (`<leader>tr`,
 which pulls neotest and 4 adapters) is 8.3ms, half a frame.

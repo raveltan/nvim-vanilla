@@ -134,6 +134,7 @@ pack.setup({
   {
     src = gh .. "mluders/comfy-line-numbers.nvim",
     event = { "BufReadPre", "BufNewFile" },
+    cmd = "ComfyLineNumbers",
     config = function() require("comfy-line-numbers").setup({}) end,
   },
 
@@ -236,9 +237,10 @@ pack.setup({
     },
   },
 
+  -- No `event`: the plugin's own plugin/ script binds these same four keys as it
+  -- sources, so the wrappers below are only ever the trigger for the first press.
   {
     src = gh .. "christoomey/vim-tmux-navigator",
-    event = "User VeryLazy",
     keys = {
       { "<C-h>", "<cmd>TmuxNavigateLeft<cr>", desc = "Window left" },
       { "<C-j>", "<cmd>TmuxNavigateDown<cr>", desc = "Window down" },
@@ -255,6 +257,9 @@ pack.setup({
     -- BufReadPre fires before FileType, so the FileType autocmd below is
     -- registered in time to highlight that same buffer.
     event = { "BufReadPre", "BufNewFile" },
+    -- :TSSync is created by config below, so it needs a trigger of its own to be
+    -- reachable on a fresh machine before any file has been opened.
+    cmd = "TSSync",
     config = function()
       local LANGS = {
         "angular", "bash", "blade", "css", "diff", "gitcommit", "git_rebase",
@@ -278,25 +283,23 @@ pack.setup({
         vim.notify("Treesitter parsers installed")
       end, { desc = "Install/update every parser (blocking)" })
 
-      -- Above either ceiling the buffer is a bundle or a dump, where parsing
-      -- costs more than the highlighting is worth.
-      local TS_MAX_BYTES = 500 * 1024
+      -- b:bigfile is the byte ceiling, set by core/autocmds.lua on BufReadPre,
+      -- which always lands before FileType. Only the line count is left to check:
+      -- a generated file can be short on bytes and still cost more to parse than
+      -- the highlighting is worth.
       local TS_MAX_LINES = 10000
       vim.api.nvim_create_autocmd("FileType", {
         group = vim.api.nvim_create_augroup("treesitter_highlight", { clear = true }),
         callback = function(args)
           if vim.b[args.buf].bigfile then return end
-          local name = vim.api.nvim_buf_get_name(args.buf)
-          local ok_stat, stat = pcall(vim.uv.fs_stat, name)
-          if ok_stat and stat and stat.size and stat.size > TS_MAX_BYTES then return end
           if vim.api.nvim_buf_line_count(args.buf) > TS_MAX_LINES then return end
           pcall(vim.treesitter.start, args.buf)
           if vim.treesitter.get_parser(args.buf, nil, { error = false }) then
             vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
             -- foldlevelstart=99 in core/options.lua keeps these open on load, zc/za
             -- fold on demand. Set only where a parser exists.
-            vim.api.nvim_set_option_value("foldmethod", "expr", { scope = "local" })
-            vim.api.nvim_set_option_value("foldexpr", "v:lua.vim.treesitter.foldexpr()", { scope = "local" })
+            vim.wo.foldmethod = "expr"
+            vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
           end
         end,
       })
@@ -698,10 +701,12 @@ pack.setup({
   {
     src = gh .. "stevearc/conform.nvim",
     event = "BufWritePre",
-    cmd = "ConformInfo",
+    -- FormatDisable/FormatEnable are created by config below, so they need their
+    -- own trigger to work before the session's first save.
+    cmd = { "ConformInfo", "FormatDisable", "FormatEnable" },
     keys = {
-      { "<leader>cf", function() require("conform").format({ async = true }) end, desc = "Format file" },
-      { "<leader>cf", function() require("conform").format({ async = true }) end, mode = "v", desc = "Format selection" },
+      { "<leader>cf", function() require("conform").format({ async = true }) end,
+        mode = { "n", "v" }, desc = "Format file / selection" },
     },
     config = function()
       -- A globally installed formatter must not restyle a repo that never opted
@@ -778,6 +783,9 @@ pack.setup({
   {
     src = gh .. "mfussenegger/nvim-lint",
     event = "BufWritePost",
+    -- artisan.setup() below is what creates :LaravelPhpstan, and it is a
+    -- whole-project run nobody has to save first to want.
+    cmd = not vim.g.gaf and "LaravelPhpstan" or nil,
     config = function()
       local lint = require("lint")
       lint.linters_by_ft = {}

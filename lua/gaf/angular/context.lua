@@ -12,7 +12,8 @@
 -- That segment is computed once per (buffer, changedtick, cursor) and shared:
 -- one completion round asks for the tag name, the quote state and the attribute
 -- being valued, and rebuilding a 30-line window for each was the bulk of the
--- work done per keystroke.
+-- work done per keystroke. The template check is memoised on the same key, for
+-- the same reason: three of the four modes ask it.
 local ts = require("gaf.angular.ts")
 
 local M = {}
@@ -20,31 +21,31 @@ local M = {}
 -- Lines of a multiline start tag we look back over.
 local WINDOW = 30
 
-local segment_cache = { key = nil, seg = nil }
+local cache = { key = nil }
 
-local function cursor_key(buf)
+local function state(buf)
   local pos = vim.api.nvim_win_get_cursor(0)
-  return table.concat({ buf, vim.api.nvim_buf_get_changedtick(buf), pos[1], pos[2] }, ":")
+  local key = table.concat({ buf, vim.api.nvim_buf_get_changedtick(buf), pos[1], pos[2] }, ":")
+  if cache.key ~= key then cache = { key = key, row = pos[1], col = pos[2] } end
+  return cache
 end
 
 -- Text from the last `<` with no `<`/`>` after it up to the cursor, or nil when
 -- the cursor isn't inside an open start tag. Scans a WINDOW-line window so
 -- multiline start tags resolve.
 function M.tag_segment(buf)
-  local key = cursor_key(buf)
-  if segment_cache.key == key then return segment_cache.seg end
+  local c = state(buf)
+  if c.seg_done then return c.seg end
+  c.seg_done = true
 
-  local pos = vim.api.nvim_win_get_cursor(0)
-  local lines = vim.api.nvim_buf_get_lines(buf, math.max(0, pos[1] - WINDOW), pos[1], false)
-  local seg
+  local lines = vim.api.nvim_buf_get_lines(buf, math.max(0, c.row - WINDOW), c.row, false)
   if #lines > 0 then
-    lines[#lines] = lines[#lines]:sub(1, pos[2]) -- up to the cursor only
+    lines[#lines] = lines[#lines]:sub(1, c.col) -- up to the cursor only
     local text = table.concat(lines, "\n")
     local lt = text:find("<[^<>]*$")
-    seg = lt and text:sub(lt) or nil
+    c.seg = lt and text:sub(lt) or nil
   end
-  segment_cache = { key = key, seg = seg }
-  return seg
+  return c.seg
 end
 
 -- The component tag whose *open* start tag encloses the cursor (`<app-foo …▏`),
@@ -59,17 +60,21 @@ end
 -- True when the cursor sits inside a quoted attribute value of the current open
 -- start tag (typing a binding *value*, not an attribute *name*).
 function M.in_attr_value(buf)
-  local seg = M.tag_segment(buf)
-  if not seg then return false end
-  local q
-  for ch in seg:gmatch(".") do
-    if q then
-      if ch == q then q = nil end
-    elseif ch == '"' or ch == "'" then
-      q = ch
+  local c = state(buf)
+  if c.quoted == nil then
+    local seg = M.tag_segment(buf) or ""
+    local q
+    for i = 1, #seg do
+      local ch = seg:byte(i)
+      if q then
+        if ch == q then q = nil end
+      elseif ch == 34 or ch == 39 then -- " '
+        q = ch
+      end
     end
+    c.quoted = q ~= nil
   end
-  return q ~= nil
+  return c.quoted
 end
 
 -- The attribute whose value the cursor is inside: its input name (brackets
@@ -104,12 +109,18 @@ end
 -- template). Uses the plain TS tree -- present regardless of the angular
 -- injection -- so it's reliable even before the injected parser has run.
 function M.in_template(buf)
+  local c = state(buf)
+  if c.template ~= nil then return c.template end
+  c.template = false
   local node = ts.node_at_cursor(buf)
   while node do
-    if node:type() == "template_string" then return true end
+    if node:type() == "template_string" then
+      c.template = true
+      break
+    end
     node = node:parent()
   end
-  return false
+  return c.template
 end
 
 -- CSS identifier under the cursor (allows - and _).
@@ -130,7 +141,6 @@ local ATTR_NODES = {
   attribute = true, property_binding = true, event_binding = true,
   two_way_binding = true, structural_directive = true, bound_attribute = true,
 }
-M.TAG_NODES = TAG_NODES
 
 -- Identifiers that live in a template *expression* (RHS of a binding, an event
 -- handler, a structural `*ngIf`, or an `{{ interpolation }}`) rather than being

@@ -23,12 +23,10 @@
 --   edits.lua       the text edits an accepted completion needs
 --   *_index.lua     the two repo-wide indexes tag completion reads
 --   inputs_source.lua  the blink.cmp source itself (see core/completion.lua)
-local module_index = require("gaf.angular.module_index")
-local nav = require("gaf.angular.nav")
-local routes = require("gaf.angular.routes")
-local search = require("gaf.angular.search")
-local selector_index = require("gaf.angular.selector_index")
-
+--
+-- Required inside the callbacks rather than up here: setup() runs during
+-- startup, and nothing in the module tree is needed until a `gd`, a `.ts` write
+-- or the completion source pulls it in (1.3ms measured).
 local M = {}
 
 -- Rebuild the index for the current file's root, for when a rename/branch switch
@@ -36,9 +34,11 @@ local M = {}
 -- dropped, not rebuilt: nothing needs it until an NgModule-declared tag is
 -- completed, and that lookup builds it.
 function M.reindex()
+  local search = require("gaf.angular.search")
+  local selector_index = require("gaf.angular.selector_index")
   local root = search.buf_root(0)
   selector_index.invalidate(root)
-  module_index.invalidate(root)
+  require("gaf.angular.module_index").invalidate(root)
   selector_index.get(root, search.rg_run, function(idx)
     local n = 0
     for _ in pairs(idx) do n = n + 1 end
@@ -64,13 +64,16 @@ function M.setup()
         vim.keymap.set("n", lhs, rhs, { buffer = ev.buf, desc = desc })
       end
       bmap("gd", function()
-        if not nav.goto_definition() then
+        if not require("gaf.angular.nav").goto_definition() then
           require("fzf-lua").lsp_definitions()
         end
       end, "Go to definition (Angular template-aware)")
-      bmap("<leader>cp", nav.goto_parents, "Angular: go to parent components")
-      bmap("<leader>cG", nav.goto_component_prompt, "Angular: go to component by name")
-      bmap("<leader>cR", routes.goto_route, "Angular: go to route module for URL")
+      bmap("<leader>cp", function() require("gaf.angular.nav").goto_parents() end,
+        "Angular: go to parent components")
+      bmap("<leader>cG", function() require("gaf.angular.nav").goto_component_prompt() end,
+        "Angular: go to component by name")
+      bmap("<leader>cR", function() require("gaf.angular.routes").goto_route() end,
+        "Angular: go to route module for URL")
     end,
   })
   -- Keep the already-built indexes current. update_file is a no-op on a root
@@ -80,9 +83,9 @@ function M.setup()
     pattern = "*.ts",
     callback = function(ev)
       local file = vim.api.nvim_buf_get_name(ev.buf)
-      local root = search.search_root(file)
-      selector_index.update_file(root, file)
-      module_index.update_file(root, file)
+      local root = require("gaf.angular.search").search_root(file)
+      require("gaf.angular.selector_index").update_file(root, file)
+      require("gaf.angular.module_index").update_file(root, file)
     end,
   })
   vim.api.nvim_create_user_command("AngularReindex", M.reindex,
