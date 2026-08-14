@@ -93,8 +93,12 @@ function M.apply()
   end
   vim.lsp.config("basedpyright", config)
 
-  -- No PHP block: phpantom roots on .git for the monolith, which the generic
-  -- config already does.
+  -- intelephense assumes phpVersion 8.5.0 and has no idea what composer.json
+  -- requires, so on the monolith it happily suggests syntax and stdlib the
+  -- deployed 8.1 runtime rejects. Rooting is already right in the generic config.
+  vim.lsp.config("intelephense", {
+    settings = { intelephense = { environment = { phpVersion = "8.1.32" } } },
+  })
 end
 
 return M

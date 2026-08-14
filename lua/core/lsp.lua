@@ -23,7 +23,7 @@ local SERVERS = {
   tailwindcss = "tailwindcss-language-server",
   typos_lsp = "typos-lsp",
   emmet_language_server = "emmet-language-server",
-  phpantom_lsp = "phpantom_lsp",
+  intelephense = "intelephense",
   rust_analyzer = "rust-analyzer",
   sourcekit = "sourcekit-lsp",
 }
@@ -143,16 +143,46 @@ local function configure()
     init_options = { diagnosticSeverity = "Hint" },
   })
 
-  -- No LSP settings on purpose. The server answers didChangeConfiguration with
-  -- "not implemented" and reads .phpantom.toml instead. Blade is left out of
-  -- filetypes because the parser is PHP-only and every @directive is a syntax
-  -- error.
-  vim.lsp.config("phpantom_lsp", {
+  -- The premium licence is picked up on its own: intelephense reads
+  -- {globalStoragePath}/intelephense/licence.txt, and globalStoragePath defaults
+  -- to $HOME, so ~/intelephense/licence.txt needs no init_options. Blade is left
+  -- out of filetypes because the parser is PHP-only and every @directive is a
+  -- syntax error.
+  vim.lsp.config("intelephense", {
     filetypes = { "php" },
-    -- Nested tables are priority order. An explicit .phpantom.toml marks the
-    -- intended root, then .git so a monorepo roots once at the top rather than
-    -- at whichever nested composer.json is closest.
-    root_markers = { { ".phpantom.toml" }, { ".git" }, { "composer.json" } },
+    -- Nested tables are priority order, so .git wins and a monorepo roots once
+    -- at the top rather than at whichever nested composer.json is closest.
+    root_markers = { { ".git" }, { "composer.json" } },
+    init_options = {
+      -- The index lives under storagePath, which defaults to os.tmpdir(). macOS
+      -- prunes /var/folders, so a monolith-sized workspace re-indexes from
+      -- scratch every time it is cleared. globalStoragePath is deliberately not
+      -- set: it defaults to $HOME, which is where the licence file lives.
+      storagePath = vim.fn.stdpath("cache") .. "/intelephense",
+    },
+    settings = {
+      intelephense = {
+        files = {
+          -- Default 1MB skips generated PHP in the monolith, and a skipped file
+          -- is an undefined symbol everywhere it is used.
+          maxSize = 5000000,
+          -- This replaces the default list rather than extending it, so the
+          -- defaults are respelled. The one addition is blade: *.blade.php
+          -- matches the *.php association, so a views/ tree would be indexed as
+          -- PHP that fails to parse at the first @directive.
+          exclude = {
+            "**/.git/**", "**/.svn/**", "**/.hg/**", "**/CVS/**", "**/.DS_Store/**",
+            "**/node_modules/**", "**/bower_components/**", "**/.history/**",
+            "**/vendor/**/{Tests,tests}/**", "**/vendor/**/vendor/**",
+            "**/*.blade.php",
+          },
+        },
+        -- No `inlayHint` block: the settings exist in intelephense's schema but
+        -- the npm server (1.14.4) answers textDocument/inlayHint with "Unhandled
+        -- method" and never advertises the capability, so the hints are the
+        -- VSCode extension's own. on_attach's supports_method guard skips PHP.
+      },
+    },
   })
 
   -- sourcekit needs dynamically-registered file watching to see cross-file

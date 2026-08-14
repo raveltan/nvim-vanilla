@@ -2,7 +2,7 @@
 -- builtin vim.pack.
 --
 -- Anything not listed is either native (core/*.lua) or deliberately gone:
--- cosmetics, terminal, undotree, obsidian, dap, dadbod.
+-- cosmetics, terminal, undotree, obsidian, dap.
 
 local pack = require("core.pack")
 local gh = "https://github.com/"
@@ -542,6 +542,157 @@ pack.setup({
     },
   },
 
+  -- ── database ───────────────────────────────────────────────────────────────
+
+  -- dadbod is the query engine, dadbod-ui the drawer, dadbod-completion the
+  -- table/column source blink reads in sql buffers (core/completion.lua).
+  -- Connections come from connections.json under db_ui_save_location below, or
+  -- from vim.g.dbs in a project-local config.
+  { src = gh .. "tpope/vim-dadbod", cmd = "DB" },
+
+  {
+    src = gh .. "kristijanhusak/vim-dadbod-ui",
+    cmd = { "DBUI", "DBUIToggle", "DBUIAddConnection", "DBUIFindBuffer" },
+    deps = { "vim-dadbod" },
+    -- plugin/db_ui.vim bakes the drawer icons out of db_ui_use_nerd_fonts as it
+    -- sources, so these have to be set before the packadd, not in config.
+    init = function()
+      vim.g.db_ui_auto_execute_table_helpers = 1
+      -- No notification plugin in this config, so echo rather than the float.
+      vim.g.db_ui_force_echo_notifications = 1
+      -- Not stdpath("data"): connections and saved queries are per machine, not
+      -- per config, so this shares ~/.config/nvim's store rather than starting
+      -- an empty second one.
+      vim.g.db_ui_save_location = vim.fn.expand("~/.local/share/nvim/db_ui")
+      vim.g.db_ui_show_database_icon = 1
+      vim.g.db_ui_use_nerd_fonts = 1
+      vim.g.db_ui_win_position = "left"
+      vim.g.db_ui_winwidth = 40
+    end,
+    keys = {
+      { "<leader>Du", "<cmd>DBUIToggle<cr>", desc = "DB: toggle UI" },
+      { "<leader>Df", "<cmd>DBUIFindBuffer<cr>", desc = "DB: find buffer" },
+      { "<leader>Da", "<cmd>DBUIAddConnection<cr>", desc = "DB: add connection" },
+      { "<leader>Dr", "<cmd>DBUIRenameBuffer<cr>", desc = "DB: rename buffer" },
+      { "<leader>Dq", "<cmd>DBUILastQueryInfo<cr>", desc = "DB: last query info" },
+    },
+  },
+
+  -- Its own spec rather than a dep of vim-dadbod: the FileType autocmd it
+  -- registers calls db#connect, so dadbod has to be loaded first.
+  {
+    src = gh .. "kristijanhusak/vim-dadbod-completion",
+    ft = { "sql", "mysql", "plsql" },
+    deps = { "vim-dadbod" },
+  },
+
+  -- Editable result grids: stage cell edits like a buffer, apply as
+  -- transactional SQL. Reads the same connections as dadbod and reuses DBUI
+  -- result windows. In the grid: i/<CR> edit, n NULL, a apply, u undo, gf
+  -- follow FK, s sort, f filter, gE export, ? help.
+  {
+    src = gh .. "joryeugene/dadbod-grip.nvim",
+    -- No version: the repo carries stray v3.x tags that outrank the real 1.x
+    -- releases, so a tag range checks out a code line missing the mysql
+    -- --batch fix (upstream #11). The default branch is the real one.
+    cmd = {
+      "Grip", "GripStart", "GripHome", "GripConnect", "GripSchema",
+      "GripTables", "GripQuery", "GripSave", "GripLoad", "GripHistory",
+      "GripProfile", "GripExplain", "GripDiff", "GripCreate",
+      "GripDrop", "GripRename", "GripProperties", "GripExport",
+      "GripAttach", "GripDetach", "GripOpen",
+    },
+    keys = {
+      { "<leader>Dc", "<cmd>GripConnect<cr>", desc = "DB: grip connect" },
+      { "<leader>Dg", "<cmd>Grip<cr>", desc = "DB: grip grid" },
+      { "<leader>Dt", "<cmd>GripTables<cr>", desc = "DB: grip tables" },
+      { "<leader>Ds", "<cmd>GripSchema<cr>", desc = "DB: grip schema" },
+      { "<leader>Dh", "<cmd>GripHistory<cr>", desc = "DB: grip history" },
+    },
+    config = function()
+      require("dadbod-grip").setup({
+        completion = false, -- blink + dadbod-completion already own sql buffers
+        picker = "builtin", -- the zero-dep one; no snacks or telescope here
+        -- :GripAsk would ship schema context to an external LLM API.
+        ai = false,
+      })
+
+      -- grip parses URLs by hand and never percent-decodes the userinfo, while
+      -- dadbod -- which consumes the URL grip exports to g:db -- requires it
+      -- encoded, so an encoded password reaches the mysql CLI literally and
+      -- fails auth. Wrapping the adapter survives plugin updates; drop this
+      -- once upstream decodes.
+      local mysql = require("dadbod-grip.adapters.mysql")
+      local function decode_userinfo(url)
+        local scheme, userinfo, rest = url:match("^(%w+://)([^@]+)(@.*)$")
+        if not userinfo then return url end
+        return scheme .. userinfo:gsub("%%(%x%x)", function(hex)
+          return string.char(tonumber(hex, 16))
+        end) .. rest
+      end
+      for name, fn in pairs(mysql) do
+        if type(fn) == "function" then
+          mysql[name] = function(...)
+            local n = select("#", ...)
+            local args = { ... }
+            for i = 1, n do
+              if type(args[i]) == "string" and args[i]:match("^mysql://") then
+                args[i] = decode_userinfo(args[i])
+              end
+            end
+            return fn(unpack(args, 1, n))
+          end
+        end
+      end
+    end,
+  },
+
+  -- Ad-hoc SQL through Redash's HTTP API. Redash is a Freelancer service, so
+  -- the plugin and its result renderer are GAF-only. Local checkout, still
+  -- being written -- swap `dir` for a src once it is published. The URL comes
+  -- from $REDASH_URL and the key from ~/brainskey.txt, so neither is in here.
+  {
+    dir = "~/redash.nvim",
+    name = "redash.nvim",
+    enabled = vim.g.gaf,
+    cmd = { "Redash", "RedashRun", "RedashSource", "RedashTables", "RedashCancel" },
+    ft = "sql", -- for the buffer-local run key
+    deps = { "csvview.nvim" },
+    keys = {
+      { "<leader>ro", "<cmd>Redash<cr>", desc = "Redash: open scratch" },
+      { "<leader>rt", "<cmd>RedashTables<cr>", desc = "Redash: browse schema" },
+      { "<leader>rs", "<cmd>RedashSource<cr>", desc = "Redash: data source" },
+      { "<leader>rk", "<cmd>RedashCancel<cr>", desc = "Redash: cancel query" },
+    },
+    config = function()
+      require("redash").setup({
+        api_key_file = "~/brainskey.txt",
+        data_source_id = 6, -- FLN-Redshift (Regular Access); :RedashSource to switch
+        run_key = "<leader>rr", -- buffer-local in sql buffers
+        ui = { style = "csvview" },
+      })
+    end,
+  },
+
+  -- Redash's result grid (ui.style="csvview"): aligned, colored columns, with
+  -- delimiter-aware column motions that skip quoted commas. No trigger of its
+  -- own -- redash declares it as a dep.
+  {
+    src = gh .. "hat0uma/csvview.nvim",
+    enabled = vim.g.gaf,
+    config = function()
+      require("csvview").setup({
+        view = { display_mode = "border" },
+        keymaps = {
+          jump_next_field_start = { "<Tab>", mode = { "n", "v" } },
+          jump_prev_field_start = { "<S-Tab>", mode = { "n", "v" } },
+          textobject_field_inner = { "if", mode = { "o", "x" } },
+          textobject_field_outer = { "af", mode = { "o", "x" } },
+        },
+      })
+    end,
+  },
+
   -- ── format / lint ──────────────────────────────────────────────────────────
 
   {
@@ -792,25 +943,30 @@ pack.setup({
     src = gh .. "folke/which-key.nvim",
     event = "User VeryLazy",
     config = function()
+      local spec = {
+        { "<leader>b", group = "buffer" },
+        { "<leader>c", group = "code" },
+        { "<leader>cs", group = "swap" },
+        { "<leader>D", group = "database" },
+        { "<leader>f", group = "find/files" },
+        { "<leader>g", group = "git" },
+        { "<leader>h", group = "harpoon" },
+        { "<leader>o", group = "overseer" },
+        { "<leader>s", group = "search" },
+        { "<leader>t", group = "test" },
+        { "<leader>u", group = "ui" },
+        { "<leader>x", group = "diagnostics/quickfix" },
+        { "g", group = "goto" },
+        { "gs", group = "surround" },
+      }
+      if vim.g.gaf then
+        spec[#spec + 1] = { "<leader>r", group = "redash" }
+      end
       require("which-key").setup({
         -- "modern" is a floating rounded box at the bottom, against the legacy
         -- full-width bar glued to the cmdline.
         preset = "modern",
-        spec = {
-          { "<leader>b", group = "buffer" },
-          { "<leader>c", group = "code" },
-          { "<leader>cs", group = "swap" },
-          { "<leader>f", group = "find/files" },
-          { "<leader>g", group = "git" },
-          { "<leader>h", group = "harpoon" },
-          { "<leader>o", group = "overseer" },
-          { "<leader>s", group = "search" },
-          { "<leader>t", group = "test" },
-          { "<leader>u", group = "ui" },
-          { "<leader>x", group = "diagnostics/quickfix" },
-          { "g", group = "goto" },
-          { "gs", group = "surround" },
-        },
+        spec = spec,
       })
     end,
   },

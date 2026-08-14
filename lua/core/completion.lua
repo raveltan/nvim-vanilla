@@ -22,10 +22,17 @@ local function sources()
     -- on FileType lua, so listing it in `default` would fault in every other
     -- buffer. lua_ls cannot see plugin modules or `vim.uv`; lazydev can, so its
     -- items outrank the server's for require() paths and vim API names.
+    -- sql/mysql/plsql: blink does not consult 'omnifunc', which is all
+    -- dadbod-completion registers, so its table/column items need the source
+    -- listed here. core/plugins.lua packadds it on those filetypes.
     per_filetype = {
       lua = { "lazydev", "lsp", "path", "snips", "buffer" },
+      mysql = { "dadbod", "snips", "buffer" },
+      plsql = { "dadbod", "snips", "buffer" },
+      sql = { "dadbod", "snips", "buffer" },
     },
     providers = {
+      dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
       lsp = { max_items = 50 },
       snips = { name = "Snippets", module = "core.snippet_source", score_offset = -3 },
       lazydev = { name = "LazyDev", module = "lazydev.integrations.blink", score_offset = 100 },

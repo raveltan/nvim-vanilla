@@ -129,8 +129,8 @@ Servers and CLI tools come from the system, never from mason:
 ```sh
 npm install -g @vtsls/language-server vscode-langservers-extracted \
   yaml-language-server @tailwindcss/language-server \
-  @olrtg/emmet-language-server prettier
-brew install lua-language-server typos-lsp phpantom-lsp stylua fzf ripgrep fd lazygit
+  @olrtg/emmet-language-server intelephense prettier
+brew install lua-language-server typos-lsp stylua fzf ripgrep fd lazygit
 pipx install basedpyright ruff
 rustup component add rust-analyzer
 ```

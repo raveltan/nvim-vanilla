@@ -6,9 +6,12 @@
 -- fires.
 --
 -- Spec fields:
---   src       repo URL (required)
+--   src       repo URL (required, unless dir)
+--   dir       local checkout, put on 'runtimepath' instead of cloned
 --   name      package name (default: last path segment)
 --   version   branch / tag / commit
+--   init      function run before the plugin loads, for the g: vars a plugin/
+--             script reads as it sources
 --   config    function run once the plugin loads
 --   deps      names of other specs to load first
 --   now       load during startup (colorscheme)
@@ -25,12 +28,36 @@ local M = {}
 local specs, order, loaded = {}, {}, {}
 
 local function derive_name(spec)
-  return spec.name or spec.src:gsub("%.git$", ""):match("([^/]+)$")
+  return spec.name or (spec.src or spec.dir):gsub("%.git$", ""):match("([^/]+)$")
 end
 
 local function tolist(v)
   if v == nil then return {} end
   return type(v) == "table" and v or { v }
+end
+
+local function spec_path(name, spec)
+  return spec.dir and vim.fn.expand(spec.dir)
+    or (vim.fn.stdpath("data") .. "/site/pack/core/opt/" .. name)
+end
+
+-- vim.pack only knows sources it can clone, so a checkout kept outside the pack
+-- directory (a plugin still being written) is packadd by hand: prepend, then
+-- source the plugin/ scripts the startup pass would have run.
+local function add_local(name, spec)
+  local dir = spec_path(name, spec)
+  if not vim.uv.fs_stat(dir) then
+    vim.notify(("[pack] %s: no checkout at %s"):format(name, dir), vim.log.levels.ERROR)
+    return false
+  end
+  vim.opt.runtimepath:prepend(dir)
+  if spec.data then return true end
+  for _, pat in ipairs({ "plugin/**/*.lua", "plugin/**/*.vim" }) do
+    for _, file in ipairs(vim.fn.globpath(dir, pat, false, true)) do
+      vim.cmd.source(file)
+    end
+  end
+  return true
 end
 
 function M.load(name)
@@ -41,14 +68,25 @@ function M.load(name)
 
   for _, dep in ipairs(tolist(spec.deps)) do M.load(dep) end
 
-  -- Outside init.lua the startup plugin pass is over, so load=false (`:packadd!`)
-  -- lands a data-only package on 'runtimepath' without sourcing its plugin/ scripts.
-  local ok, err = pcall(vim.pack.add,
-    { { src = spec.src, name = name, version = spec.version } },
-    { load = not spec.data, confirm = false })
-  if not ok then
-    vim.notify(("[pack] %s install failed:\n%s"):format(name, err), vim.log.levels.ERROR)
-    return false
+  if spec.init then
+    local iok, ierr = pcall(spec.init)
+    if not iok then
+      vim.notify(("[pack] %s init failed:\n%s"):format(name, ierr), vim.log.levels.ERROR)
+    end
+  end
+
+  if spec.dir then
+    if not add_local(name, spec) then return false end
+  else
+    -- Outside init.lua the startup plugin pass is over, so load=false (`:packadd!`)
+    -- lands a data-only package on 'runtimepath' without sourcing its plugin/ scripts.
+    local ok, err = pcall(vim.pack.add,
+      { { src = spec.src, name = name, version = spec.version } },
+      { load = not spec.data, confirm = false })
+    if not ok then
+      vim.notify(("[pack] %s install failed:\n%s"):format(name, err), vim.log.levels.ERROR)
+      return false
+    end
   end
 
   if spec.config then
@@ -60,14 +98,21 @@ function M.load(name)
   return true
 end
 
--- Re-fired so a just-loaded plugin's ftplugin/ sees the buffer that triggered it.
--- The guard stops another spec's ft trigger recursing back in here.
-local refiring = false
+-- Re-fired so a just-loaded plugin's ftplugin/ and FileType autocmds see the
+-- buffer that triggered it. Scheduled rather than immediate: several specs can
+-- share a filetype, and re-firing inside the dispatch that loaded the first one
+-- runs before the rest have registered anything. One deferred pass, coalesced
+-- per buffer, lands after all of them.
+local refire_pending = {}
 local function refire_filetype(buf)
-  if refiring or not vim.api.nvim_buf_is_valid(buf) then return end
-  refiring = true
-  pcall(vim.api.nvim_exec_autocmds, "FileType", { buffer = buf, modeline = false })
-  refiring = false
+  if refire_pending[buf] then return end
+  refire_pending[buf] = true
+  vim.schedule(function()
+    refire_pending[buf] = nil
+    if vim.api.nvim_buf_is_valid(buf) then
+      pcall(vim.api.nvim_exec_autocmds, "FileType", { buffer = buf, modeline = false })
+    end
+  end)
 end
 
 local function wire(name, spec)
@@ -168,10 +213,10 @@ function M.setup(list)
   -- already-installed setup is a no-op and nothing loads early.
   vim.api.nvim_create_user_command("PackInstall", function()
     local missing = {}
-    local root = vim.fn.stdpath("data") .. "/site/pack/core/opt/"
     for _, n in ipairs(order) do
-      if not vim.uv.fs_stat(root .. n) then
-        missing[#missing + 1] = { src = specs[n].src, name = n, version = specs[n].version }
+      local spec = specs[n]
+      if not spec.dir and not vim.uv.fs_stat(spec_path(n, spec)) then
+        missing[#missing + 1] = { src = spec.src, name = n, version = spec.version }
       end
     end
     if #missing == 0 then
@@ -183,12 +228,11 @@ function M.setup(list)
   end, { desc = "Clone any not-yet-installed plugins" })
 
   vim.api.nvim_create_user_command("PackStatus", function()
-    local root = vim.fn.stdpath("data") .. "/site/pack/core/opt/"
     local lines = {}
     for _, n in ipairs(order) do
       lines[#lines + 1] = ("%-32s %-9s %s"):format(n,
         loaded[n] and "loaded" or "deferred",
-        vim.uv.fs_stat(root .. n) and "" or "NOT INSTALLED")
+        vim.uv.fs_stat(spec_path(n, specs[n])) and "" or "NOT INSTALLED")
     end
     vim.notify(table.concat(lines, "\n"))
   end, { desc = "Show pack install/load state" })
