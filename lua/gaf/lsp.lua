@@ -93,11 +93,61 @@ function M.apply()
   end
   vim.lsp.config("basedpyright", config)
 
-  -- intelephense assumes phpVersion 8.5.0 and has no idea what composer.json
-  -- requires, so on the monolith it happily suggests syntax and stdlib the
-  -- deployed 8.1 runtime rejects. Rooting is already right in the generic config.
+  -- The monolith's PHP server. Nothing outside GAF configures intelephense, so
+  -- this merges straight onto nvim-lspconfig's lsp/intelephense.lua and is the
+  -- only place its settings live.
+  --
+  -- The premium licence is picked up on its own: intelephense reads
+  -- {globalStoragePath}/intelephense/licence.txt, and globalStoragePath defaults
+  -- to $HOME, so ~/intelephense/licence.txt needs no init_options. Blade is left
+  -- out of filetypes because the parser is PHP-only and every @directive is a
+  -- syntax error.
   vim.lsp.config("intelephense", {
-    settings = { intelephense = { environment = { phpVersion = "8.1.32" } } },
+    filetypes = { "php" },
+    -- Nested tables are priority order, so .git wins and the monolith roots once
+    -- at the top rather than at whichever nested composer.json is closest.
+    root_markers = { { ".git" }, { "composer.json" } },
+    init_options = {
+      -- The index lives under storagePath, which defaults to os.tmpdir(). macOS
+      -- prunes /var/folders, so a monolith-sized workspace re-indexes from
+      -- scratch every time it is cleared. globalStoragePath is deliberately not
+      -- set: it defaults to $HOME, which is where the licence file lives.
+      storagePath = vim.fn.stdpath("cache") .. "/intelephense",
+    },
+    settings = {
+      intelephense = {
+        -- intelephense assumes 8.5.0 and has no idea what composer.json
+        -- requires, so it happily suggests syntax and stdlib the deployed 8.1
+        -- runtime rejects.
+        environment = { phpVersion = "8.1.32" },
+        -- conform runs fl-gaf's own php-cs-fixer build with the per-tree
+        -- ruleset, so the server's formatter is dead weight that would fight it
+        -- on lsp_format fallback.
+        format = { enable = false },
+        files = {
+          -- Default 1MB skips generated PHP in the monolith, and a skipped file
+          -- is an undefined symbol everywhere it is used.
+          maxSize = 5000000,
+          -- This replaces the default list rather than extending it, so the
+          -- defaults are respelled. Two additions:
+          --   *.blade.php matches the *.php association, so views/ would be
+          --   indexed as PHP that fails to parse at the first @directive.
+          --   webapp/ is 22GB of Angular holding zero PHP files, and the scan
+          --   still walks every directory it is not told to skip.
+          exclude = {
+            "**/.git/**", "**/.svn/**", "**/.hg/**", "**/CVS/**", "**/.DS_Store/**",
+            "**/node_modules/**", "**/bower_components/**", "**/.history/**",
+            "**/vendor/**/{Tests,tests}/**", "**/vendor/**/vendor/**",
+            "**/*.blade.php",
+            "**/webapp/**",
+          },
+        },
+        -- No `inlayHint` block: the settings exist in intelephense's schema but
+        -- the npm server (1.14.4) answers textDocument/inlayHint with "Unhandled
+        -- method" and never advertises the capability, so the hints are the
+        -- VSCode extension's own. on_attach's supports_method guard skips PHP.
+      },
+    },
   })
 end
 

@@ -24,8 +24,23 @@ local SERVERS = {
   typos_lsp = "typos-lsp",
   emmet_language_server = "emmet-language-server",
   intelephense = "intelephense",
+  phpantom_lsp = "phpantom_lsp",
   rust_analyzer = "rust-analyzer",
   sourcekit = "sourcekit-lsp",
+}
+
+-- Servers restricted to one profile: "gaf" is the monolith, "plain" is every
+-- other checkout, and a name absent here starts in both.
+--
+-- PHP is split because the two servers claim the same filetype, and both
+-- attached to one buffer means duplicated completion and duplicated
+-- diagnostics. The monolith gets intelephense, whose whole config lives in
+-- gaf/lsp.lua; everything else gets phpantom_lsp on its defaults.
+local PROFILE = {
+  intelephense = "gaf",
+  phpantom_lsp = "plain",
+  -- tailwindcss never starts in the monolith and its scan is expensive.
+  tailwindcss = "plain",
 }
 
 -- Each override below merges on top of nvim-lspconfig's lsp/<server>.lua.
@@ -128,8 +143,6 @@ local function configure()
     settings = { html = { autoClosingTags = false } },
   })
 
-  vim.lsp.config("cssls", { filetypes = { "css", "scss", "less" } })
-
   -- Emmet abbreviations arrive as ordinary completion items, expanded on accept.
   vim.lsp.config("emmet_language_server", {
     filetypes = {
@@ -141,48 +154,6 @@ local function configure()
 
   vim.lsp.config("typos_lsp", {
     init_options = { diagnosticSeverity = "Hint" },
-  })
-
-  -- The premium licence is picked up on its own: intelephense reads
-  -- {globalStoragePath}/intelephense/licence.txt, and globalStoragePath defaults
-  -- to $HOME, so ~/intelephense/licence.txt needs no init_options. Blade is left
-  -- out of filetypes because the parser is PHP-only and every @directive is a
-  -- syntax error.
-  vim.lsp.config("intelephense", {
-    filetypes = { "php" },
-    -- Nested tables are priority order, so .git wins and a monorepo roots once
-    -- at the top rather than at whichever nested composer.json is closest.
-    root_markers = { { ".git" }, { "composer.json" } },
-    init_options = {
-      -- The index lives under storagePath, which defaults to os.tmpdir(). macOS
-      -- prunes /var/folders, so a monolith-sized workspace re-indexes from
-      -- scratch every time it is cleared. globalStoragePath is deliberately not
-      -- set: it defaults to $HOME, which is where the licence file lives.
-      storagePath = vim.fn.stdpath("cache") .. "/intelephense",
-    },
-    settings = {
-      intelephense = {
-        files = {
-          -- Default 1MB skips generated PHP in the monolith, and a skipped file
-          -- is an undefined symbol everywhere it is used.
-          maxSize = 5000000,
-          -- This replaces the default list rather than extending it, so the
-          -- defaults are respelled. The one addition is blade: *.blade.php
-          -- matches the *.php association, so a views/ tree would be indexed as
-          -- PHP that fails to parse at the first @directive.
-          exclude = {
-            "**/.git/**", "**/.svn/**", "**/.hg/**", "**/CVS/**", "**/.DS_Store/**",
-            "**/node_modules/**", "**/bower_components/**", "**/.history/**",
-            "**/vendor/**/{Tests,tests}/**", "**/vendor/**/vendor/**",
-            "**/*.blade.php",
-          },
-        },
-        -- No `inlayHint` block: the settings exist in intelephense's schema but
-        -- the npm server (1.14.4) answers textDocument/inlayHint with "Unhandled
-        -- method" and never advertises the capability, so the hints are the
-        -- VSCode extension's own. on_attach's supports_method guard skips PHP.
-      },
-    },
   })
 
   -- sourcekit needs dynamically-registered file watching to see cross-file
@@ -292,19 +263,18 @@ local function start()
   diagnostics()
   configure()
 
+  -- Layered before enable() so the GAF overrides are in place when the server
+  -- resolves its config on the first attach.
+  if vim.g.gaf then require("gaf.lsp").apply() end
+
+  local profile = vim.g.gaf and "gaf" or "plain"
   local enabled = {}
   for name, bin in pairs(SERVERS) do
-    if vim.fn.executable(bin) == 1 then
+    if (PROFILE[name] or profile) == profile and vim.fn.executable(bin) == 1 then
       enabled[#enabled + 1] = name
     end
   end
   table.sort(enabled)
-
-  if vim.g.gaf then
-    -- tailwindcss never starts in the monolith and its scan is expensive.
-    enabled = vim.tbl_filter(function(s) return s ~= "tailwindcss" end, enabled)
-    require("gaf.lsp").apply()
-  end
 
   vim.lsp.enable(enabled)
 
@@ -326,10 +296,16 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile", "FileType" }, {
 })
 
 vim.api.nvim_create_user_command("LspServers", function()
+  local profile = vim.g.gaf and "gaf" or "plain"
   local lines = {}
   for name, bin in vim.spairs(SERVERS) do
-    lines[#lines + 1] = ("%-24s %-34s %s"):format(name, bin,
-      vim.fn.executable(bin) == 1 and "installed" or "MISSING")
+    local status = vim.fn.executable(bin) == 1 and "installed" or "MISSING"
+    -- An installed server that this profile never enables reads as a puzzle
+    -- otherwise, so say which profile owns it.
+    if (PROFILE[name] or profile) ~= profile then
+      status = ("%s, %s profile only"):format(status, PROFILE[name])
+    end
+    lines[#lines + 1] = ("%-24s %-34s %s"):format(name, bin, status)
   end
   vim.notify(table.concat(lines, "\n"))
 end, { desc = "Which language servers are on PATH" })
