@@ -82,15 +82,12 @@ end
 pack.setup({
   -- Loaded during startup so the first paint is already themed.
   {
-    src = gh .. "bluz71/vim-moonfly-colors",
-    name = "moonfly",
+    src = gh .. "WTFox/luna.nvim",
+    name = "luna",
     now = true,
     config = function()
-      vim.g.moonflyTransparent = true
-      -- The default 1 draws VertSplit as a solid grey block that survives
-      -- transparency. 2 is the line style moonfly renders with bg=NONE.
-      vim.g.moonflyWinSeparator = 2
-      vim.cmd.colorscheme("moonfly")
+      require("luna").setup({ transparent = true })
+      vim.cmd.colorscheme("luna")
       -- Inlay hints read as annotations, not boxed text.
       vim.api.nvim_set_hl(0, "LspInlayHint", { fg = "#5c6370", italic = true })
       require("core.statusline").setup()
@@ -935,7 +932,13 @@ pack.setup({
         },
         component_aliases = {
           default = {
-            { "open_output", on_start = "always", direction = "float", focus = true },
+            -- Not the builtin open_output: task:start() (from the <leader>or
+            -- fzf-lua picker callback) can still be inside a floating window
+            -- at that instant, which defers overseer's real terminal attach
+            -- (see lua/overseer/component/open_output_delayed.lua) until the
+            -- float that would show it is closed. The delayed variant opens
+            -- one tick later, after that attach has had a chance to happen.
+            { "open_output_delayed", direction = "float", focus = true },
             "on_exit_set_status",
             "on_complete_notify",
             -- Finished tasks stay in the list until viewed once, then clear

@@ -19,6 +19,7 @@ map("n", "[b", "<cmd>bprevious<cr>", { desc = "Prev buffer" })
 map("n", "]b", "<cmd>bnext<cr>", { desc = "Next buffer" })
 
 map("n", "<esc>", "<cmd>noh<cr><esc>", { desc = "Clear highlights" })
+map("t", "<esc><esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 -- ── LSP ───────────────────────────────────────────────────────────────────────
 

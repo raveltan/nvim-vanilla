@@ -45,6 +45,10 @@
       "rev": "ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d",
       "src": "https://github.com/folke/lazydev.nvim"
     },
+    "luna": {
+      "rev": "4744620fd0d3ce543fbbdad78e035e6e8c80951d",
+      "src": "https://github.com/WTFox/luna.nvim"
+    },
     "mini.ai": {
       "rev": "25248c6aa002391936a6200f12d1466015987133",
       "src": "https://github.com/echasnovski/mini.ai"

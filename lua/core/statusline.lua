@@ -5,7 +5,7 @@ local harpoon_list = require("core.harpoon").list
 
 local M = {}
 
--- moonfly palette, so the accents match the theme without pulling its module.
+-- Hardcoded palette (independent of the active colorscheme module).
 local C = {
   fg      = "#c6c6c6",
   grey    = "#8b8b8b",
